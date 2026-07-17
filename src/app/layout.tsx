@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dorm Check-In",
-  description: "Front-desk check-in / check-out for residence hall staff.",
+  title: "Tudor Hall",
+  description: "Resident management for Tudor Hall staff.",
 };
 
 export default function RootLayout({
