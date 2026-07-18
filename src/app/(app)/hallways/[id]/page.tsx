@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { StatusChip } from "@/components/status-chip";
+import { HallwayRoster, type RosterEntry } from "@/components/hallway-roster";
 import type { Hallway, OccupancyStatus } from "@/lib/types";
 
 type RosterResident = {
@@ -49,9 +49,17 @@ export default async function HallwayPage({
   const raNames = hallway.hallway_assignments
     .map((a) => a.users?.name)
     .filter(Boolean);
-  const roster = rooms.flatMap((room) =>
-    room.residents.map((resident) => ({ ...resident, room })),
-  );
+  const roster: RosterEntry[] = rooms
+    .flatMap((room) =>
+      room.residents.map((resident) => ({
+        id: resident.id,
+        full_name: resident.full_name,
+        room_number: room.room_number,
+        occupancy_status: resident.occupancy_status,
+        is_present: resident.is_present,
+      })),
+    )
+    .sort((a, b) => a.full_name.localeCompare(b.full_name));
 
   return (
     <section>
@@ -95,40 +103,9 @@ export default async function HallwayPage({
         ))}
       </ul>
 
-      {/* Roster — the step-4 presence toggle and bulk actions land here. */}
-      <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-gray-500">
-        Roster
-      </h2>
-      {roster.length === 0 ? (
-        <p className="mt-2 text-sm text-gray-500">
-          No residents in this hallway yet.
-        </p>
-      ) : (
-        <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
-          {roster.map((resident) => (
-            <li
-              key={resident.id}
-              className="flex items-center justify-between gap-3 px-4 py-2.5"
-            >
-              <div className="flex items-baseline gap-3">
-                <span className="text-sm font-medium">
-                  {resident.full_name}
-                </span>
-                <Link
-                  href={`/rooms/${resident.room.id}`}
-                  className="text-xs text-gray-500 hover:text-navy hover:underline"
-                >
-                  Room {resident.room.room_number}
-                </Link>
-              </div>
-              <StatusChip
-                status={resident.occupancy_status}
-                isPresent={resident.is_present}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="mt-8">
+        <HallwayRoster hallwayId={hallway.id} residents={roster} />
+      </div>
     </section>
   );
 }

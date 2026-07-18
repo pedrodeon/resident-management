@@ -30,3 +30,19 @@ body {
   color: var(--color-ink);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
+
+/*
+ * Printing the hallway roster (safety-relevant: who's in the building during
+ * a break). Drop the navy nav so the printed sheet is just the roster.
+ * Element-level controls (toggles, buttons) opt out with `print:hidden`.
+ */
+@media print {
+  header {
+    display: none;
+  }
+  /* Ensure the orange "away" highlight survives the print color pass. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
