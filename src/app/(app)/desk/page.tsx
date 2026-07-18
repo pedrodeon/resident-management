@@ -6,6 +6,7 @@ type ResidentRow = {
   id: string;
   full_name: string;
   student_id: string;
+  room_id: string;
   occupancy_status: OccupancyStatus;
   rooms: {
     room_number: string;
@@ -20,7 +21,7 @@ export default async function DeskPage() {
   const { data, error } = await supabase
     .from("residents")
     .select(
-      `id, full_name, student_id, occupancy_status,
+      `id, full_name, student_id, room_id, occupancy_status,
        rooms ( room_number, hallways ( id, name ) )`,
     )
     .order("full_name")
@@ -32,6 +33,7 @@ export default async function DeskPage() {
       id: r.id,
       full_name: r.full_name,
       student_id: r.student_id,
+      room_id: r.room_id,
       room_number: r.rooms!.room_number,
       hallway_id: r.rooms!.hallways!.id,
       hallway_name: r.rooms!.hallways!.name,

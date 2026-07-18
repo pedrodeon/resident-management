@@ -8,6 +8,8 @@ export type Wing = "holiday" | "lebanon";
 export type OccupancyStatus = "expected" | "checked_in" | "checked_out";
 export type OccupancyEventType = "check_in" | "check_out";
 export type PresenceStatus = "away" | "returned";
+export type InspectionType = "move_in" | "move_out" | "periodic";
+export type ItemCondition = "good" | "fair" | "damaged" | "missing";
 
 export type StaffUser = {
   id: string;
@@ -58,5 +60,29 @@ export type OccupancyEvent = {
   type: OccupancyEventType;
   timestamp: string;
   recorded_by: string | null;
+  note: string | null;
+};
+
+export type InventoryItem = {
+  id: string;
+  name: string;
+  sort_order: number;
+};
+
+export type Inspection = {
+  id: string;
+  room_id: string;
+  resident_id: string | null;
+  type: InspectionType;
+  timestamp: string;
+  inspected_by: string | null;
+  notes: string | null;
+};
+
+export type InspectionItem = {
+  id: string;
+  inspection_id: string;
+  inventory_item_id: string;
+  condition: ItemCondition;
   note: string | null;
 };

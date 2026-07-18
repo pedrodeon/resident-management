@@ -10,15 +10,26 @@ export type DeskResident = {
   id: string;
   full_name: string;
   student_id: string;
+  room_id: string;
   room_number: string;
   hallway_id: string;
   hallway_name: string;
   occupancy_status: OccupancyStatus;
 };
 
+// After a check-in/out, prompt the paired inspection (CLAUDE.md: creating a
+// move_in inspection is part of the check-in flow). A link, not a forced
+// redirect, so move-in-day throughput stays fast.
+type JustActed = {
+  residentName: string;
+  roomId: string;
+  inspectionType: "move_in" | "move_out";
+};
+
 export function DeskConsole({ residents }: { residents: DeskResident[] }) {
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [justActed, setJustActed] = useState<JustActed | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // Optimistic status overlay keyed by resident id.
@@ -46,6 +57,7 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
 
   function act(resident: DeskResident, type: "check_in" | "check_out") {
     setError(null);
+    setJustActed(null);
     const nextStatus: OccupancyStatus =
       type === "check_in" ? "checked_in" : "checked_out";
     startTransition(async () => {
@@ -55,7 +67,15 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
         type,
         resident.hallway_id,
       );
-      if (!result.ok) setError(result.error);
+      if (!result.ok) {
+        setError(result.error);
+      } else {
+        setJustActed({
+          residentName: resident.full_name,
+          roomId: resident.room_id,
+          inspectionType: type === "check_in" ? "move_in" : "move_out",
+        });
+      }
     });
   }
 
@@ -68,6 +88,24 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
         >
           {error}
         </p>
+      )}
+
+      {justActed && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-navy/20 bg-navy/5 px-3 py-2 text-sm">
+          <span>
+            Recorded for <strong>{justActed.residentName}</strong>. Start the
+            paired {justActed.inspectionType === "move_in" ? "move-in" : "move-out"}{" "}
+            inspection?
+          </span>
+          <Link
+            href={`/rooms/${justActed.roomId}/inspections/new?type=${justActed.inspectionType}`}
+            className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark"
+          >
+            {justActed.inspectionType === "move_in"
+              ? "Move-in inspection"
+              : "Move-out inspection"}
+          </Link>
+        </div>
       )}
 
       {/* Expected panel — the move-in-day chase list. */}
@@ -125,8 +163,7 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
 
         {query.trim() === "" ? (
           <p className="mt-2 text-xs text-gray-400">
-            Move-in inspections will be created from the check-in action here
-            (build step 6).
+            After a check-in or check-out, you can start the paired inspection.
           </p>
         ) : results.length === 0 ? (
           <p className="mt-3 text-sm text-gray-500">No match for “{query}”.</p>

@@ -2,7 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { StatusChip } from "@/components/status-chip";
-import type { OccupancyStatus } from "@/lib/types";
+import {
+  InspectionHistory,
+  type HistoryEntry,
+} from "@/components/inspection-history";
+import type { InspectionType, OccupancyStatus } from "@/lib/types";
 
 type RoomDetail = {
   id: string;
@@ -18,6 +22,13 @@ type RoomDetail = {
   }[];
 };
 
+type InspectionRow = {
+  id: string;
+  type: InspectionType;
+  timestamp: string;
+  users: { name: string } | null;
+};
+
 export default async function RoomPage({
   params,
 }: {
@@ -25,18 +36,33 @@ export default async function RoomPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: room, error } = await supabase
-    .from("rooms")
-    .select(
-      `id, room_number, capacity,
-       hallways ( id, name ),
-       residents ( id, full_name, student_id, occupancy_status, is_present )`,
-    )
-    .eq("id", id)
-    .single()
-    .overrideTypes<RoomDetail>();
+  const [{ data: room, error }, { data: inspectionRows }] = await Promise.all([
+    supabase
+      .from("rooms")
+      .select(
+        `id, room_number, capacity,
+         hallways ( id, name ),
+         residents ( id, full_name, student_id, occupancy_status, is_present )`,
+      )
+      .eq("id", id)
+      .single()
+      .overrideTypes<RoomDetail>(),
+    supabase
+      .from("inspections")
+      .select(`id, type, timestamp, users:inspected_by ( name )`)
+      .eq("room_id", id)
+      .order("timestamp", { ascending: false })
+      .overrideTypes<InspectionRow[]>(),
+  ]);
 
   if (error || !room || !room.hallways) notFound();
+
+  const inspections: HistoryEntry[] = (inspectionRows ?? []).map((r) => ({
+    id: r.id,
+    type: r.type,
+    timestamp: r.timestamp,
+    inspector: r.users?.name ?? null,
+  }));
 
   return (
     <section>
@@ -90,10 +116,9 @@ export default async function RoomPage({
         </ul>
       )}
 
-      {/* Step 6 adds the inspection history + create-inspection flow here. */}
-      <p className="mt-8 text-xs text-gray-400">
-        Inspections for this room will appear here (build step 6).
-      </p>
+      <div className="mt-8">
+        <InspectionHistory roomId={room.id} inspections={inspections} />
+      </div>
     </section>
   );
 }
