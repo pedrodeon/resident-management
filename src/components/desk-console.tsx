@@ -175,7 +175,12 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
                 className="flex items-center justify-between gap-3 px-4 py-3"
               >
                 <div>
-                  <p className="text-sm font-medium">{resident.full_name}</p>
+                  <Link
+                    href={`/residents/${resident.id}`}
+                    className="text-sm font-medium hover:text-navy hover:underline"
+                  >
+                    {resident.full_name}
+                  </Link>
                   <p className="mt-0.5 text-xs text-gray-500">
                     <span className="font-mono">{resident.student_id}</span> ·{" "}
                     <Link

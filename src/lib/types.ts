@@ -63,6 +63,16 @@ export type OccupancyEvent = {
   note: string | null;
 };
 
+export type RoomChangeEvent = {
+  id: string;
+  resident_id: string;
+  from_room_id: string | null;
+  to_room_id: string;
+  timestamp: string;
+  changed_by: string | null;
+  reason: string | null;
+};
+
 export type InventoryItem = {
   id: string;
   name: string;

@@ -102,7 +102,12 @@ export default async function RoomPage({
               className="flex items-center justify-between gap-3 px-4 py-3"
             >
               <div>
-                <p className="text-sm font-medium">{resident.full_name}</p>
+                <Link
+                  href={`/residents/${resident.id}`}
+                  className="text-sm font-medium hover:text-navy hover:underline"
+                >
+                  {resident.full_name}
+                </Link>
                 <p className="mt-0.5 font-mono text-xs text-gray-500">
                   {resident.student_id}
                 </p>

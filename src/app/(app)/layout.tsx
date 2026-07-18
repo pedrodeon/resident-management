@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getStaffContext } from "@/lib/auth";
 import { signOut } from "./actions";
 
 /**
@@ -13,11 +13,9 @@ export default async function AppLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const staff = await getStaffContext();
+  if (!staff) redirect("/login");
+  const isRd = staff.role === "rd";
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -36,10 +34,18 @@ export default async function AppLayout({
             >
               Move-in / out
             </Link>
+            {isRd && (
+              <Link
+                href="/admin"
+                className="text-sm text-white/80 transition-colors hover:text-white"
+              >
+                Admin
+              </Link>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-white/70 sm:inline">
-              {user.email}
+              {staff.email}
             </span>
             <form action={signOut}>
               <button

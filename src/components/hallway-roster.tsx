@@ -1,6 +1,7 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
+import Link from "next/link";
 import { StatusChip } from "@/components/status-chip";
 import { togglePresence, bulkSetPresence } from "@/app/(app)/hallways/[id]/actions";
 import type { OccupancyStatus } from "@/lib/types";
@@ -121,9 +122,12 @@ export function HallwayRoster({
                 }`}
               >
                 <div className="flex items-baseline gap-3">
-                  <span className="text-sm font-medium">
+                  <Link
+                    href={`/residents/${resident.id}`}
+                    className="text-sm font-medium hover:text-navy hover:underline"
+                  >
                     {resident.full_name}
-                  </span>
+                  </Link>
                   <span className="text-xs text-gray-500">
                     Room {resident.room_number}
                   </span>
