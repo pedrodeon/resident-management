@@ -6,6 +6,7 @@
 export type StaffRole = "rd" | "ra";
 export type Wing = "holiday" | "lebanon";
 export type OccupancyStatus = "expected" | "checked_in" | "checked_out";
+export type OccupancyEventType = "check_in" | "check_out";
 export type PresenceStatus = "away" | "returned";
 
 export type StaffUser = {
@@ -46,6 +47,15 @@ export type PresenceEvent = {
   id: string;
   resident_id: string;
   status: PresenceStatus;
+  timestamp: string;
+  recorded_by: string | null;
+  note: string | null;
+};
+
+export type OccupancyEvent = {
+  id: string;
+  resident_id: string;
+  type: OccupancyEventType;
   timestamp: string;
   recorded_by: string | null;
   note: string | null;

@@ -23,12 +23,20 @@ export default async function AppLayout({
     <div className="flex min-h-screen flex-col">
       <header className="bg-navy text-white">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link
-            href="/"
-            className="text-lg font-bold tracking-[0.2em] hover:text-white/80"
-          >
-            TUDOR HALL
-          </Link>
+          <div className="flex items-center gap-5">
+            <Link
+              href="/"
+              className="text-lg font-bold tracking-[0.2em] hover:text-white/80"
+            >
+              TUDOR HALL
+            </Link>
+            <Link
+              href="/desk"
+              className="text-sm text-white/80 transition-colors hover:text-white"
+            >
+              Move-in / out
+            </Link>
+          </div>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-white/70 sm:inline">
               {user.email}
