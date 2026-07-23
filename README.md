@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tudor Hall — resident management
 
-## Getting Started
+A web app replacing paper-based resident management in Tudor Hall, a ~200-resident
+university dorm run by one Resident Director (RD) and 7 Resident Assistants (RAs).
 
-First, run the development server:
+Only staff log in. Residents are records, never user accounts.
+
+See [CLAUDE.md](CLAUDE.md) for the full product spec and data model.
+
+## What it does
+
+- **Dashboard** — all 8 hallways grouped by floor, with checked-in / expected /
+  away counts and who covers each one.
+- **Hallway view** — rooms plus the live roster with a **present/away toggle**
+  and "mark all present / away" bulk actions. Printable; this is the everyday
+  screen during breaks.
+- **Room detail** — residents with student IDs, plus the room's inspection
+  history and a side-by-side compare.
+- **Move-in / move-out** (`/desk`) — search any resident, record check-in or
+  check-out, and see who has not arrived yet.
+- **Inspections** — a 12-item template captured as immutable dated snapshots;
+  damage is the diff between two of them.
+- **Resident detail** — full record plus occupancy, presence, and room-change
+  history.
+- **Admin** (RD only) — residents, rooms, staff invites, hallway coverage, and
+  the inspection template.
+
+## Stack
+
+Next.js (App Router, TypeScript) · Supabase (Postgres, Auth, RLS) · Tailwind.
+
+Access control lives in **Postgres RLS**, not the UI. Any staff member can read
+everything; only the RD writes the roster. The three event tables and
+inspections are append-only and written exclusively through `SECURITY DEFINER`
+RPCs, so a change and its audit record can never diverge.
+
+## Setup
+
+Follow [docs/SETUP.md](docs/SETUP.md) — create the Supabase project in its own
+organization, apply migrations, and seed fake data.
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then sign in at http://localhost:3000 with a seeded staff account
+(`npm run seed:staff` prints the credentials).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Sensitive data
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This app is designed to hold real students' names, ID numbers, room
+assignments, and contact info — likely covered by FERPA. **Develop and test
+against seed/fake data only.** Do not load real resident records until
+Residence Life and IT have signed off. Never commit `.env.local`.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The seeded dev accounts (`*@tudor.test`) share a well-known password and exist
+only for local development — remove them before any real deployment.

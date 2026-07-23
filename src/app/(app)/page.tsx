@@ -62,7 +62,9 @@ export default async function Dashboard() {
               .filter((h) => h.floor === floor)
               .map((hallway) => {
                 const counts = countsFor(hallway);
-                const raNames = hallway.hallway_assignments
+                // Coverage isn't 1:1 and the RD covers some hallways, so this
+                // is "covered by", not "RA".
+                const coveredBy = hallway.hallway_assignments
                   .map((a) => a.users?.name)
                   .filter(Boolean);
                 return (
@@ -96,9 +98,9 @@ export default async function Dashboard() {
                         )}
                       </div>
 
-                      {raNames.length > 0 && (
+                      {coveredBy.length > 0 && (
                         <p className="mt-3 text-xs text-gray-500">
-                          RA: {raNames.join(", ")}
+                          Covered by: {coveredBy.join(", ")}
                         </p>
                       )}
                     </Link>

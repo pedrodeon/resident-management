@@ -37,11 +37,20 @@ npx supabase link --project-ref <ref>   # <ref> from the project URL
 npx supabase db push                    # applies supabase/migrations/
 ```
 
+The migrations also seed the 12-item inspection template — that's real
+reference data the app depends on, not dev-only fixtures.
+
 ## 5. Seed fake data
 
-1. **Building + residents:** open the dashboard SQL editor, paste the contents
-   of `supabase/seed.sql`, run it. (All fake data — real resident records must
-   never enter dev.)
+1. **Building + residents** (8 hallways, 24 rooms, 20 fake residents):
+
+   ```sh
+   npx supabase db push --include-seed
+   ```
+
+   Applies `supabase/seed.sql`. All fake data — real resident records must
+   never enter dev. (You can also paste the file into the dashboard SQL editor.)
+
 2. **Staff accounts (RD + 2 RAs):**
 
    ```sh
@@ -54,4 +63,17 @@ npx supabase db push                    # applies supabase/migrations/
 ## 6. Smoke test
 
 `npm run dev` → http://localhost:3000 → sign in as `rd@tudor.test`. You should
-land in the TUDOR HALL shell signed in as the RD.
+land on the TUDOR HALL dashboard showing all 8 hallways with counts. Sign in as
+`ra1@tudor.test` to see the RA view (no Admin link).
+
+## Notes for later
+
+- **Adding a table?** With "automatically expose new tables" off, a new table
+  gets no grants at all. Every migration that adds one must `grant` explicitly
+  to `authenticated` (and `service_role` where a script needs it) — an RLS
+  policy alone will not grant access.
+- **Staff invites** currently set a temporary password shown once in the admin
+  UI, because dev has no SMTP. Configure an SMTP provider in Supabase and
+  switch `inviteStaff` to `inviteUserByEmail` before real use.
+- **Before any real deployment:** delete the `*@tudor.test` dev accounts and the
+  fake resident rows.

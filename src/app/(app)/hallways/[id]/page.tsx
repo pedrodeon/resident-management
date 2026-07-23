@@ -46,7 +46,8 @@ export default async function HallwayPage({
   const rooms = [...hallway.rooms].sort((a, b) =>
     a.room_number.localeCompare(b.room_number, undefined, { numeric: true }),
   );
-  const raNames = hallway.hallway_assignments
+  // Coverage isn't 1:1 and the RD covers some hallways — "covered by", not "RA".
+  const coveredBy = hallway.hallway_assignments
     .map((a) => a.users?.name)
     .filter(Boolean);
   const roster: RosterEntry[] = rooms
@@ -75,9 +76,9 @@ export default async function HallwayPage({
         <span className="text-sm capitalize text-gray-500">
           {hallway.wing} wing · floor {hallway.floor}
         </span>
-        {raNames.length > 0 && (
+        {coveredBy.length > 0 && (
           <span className="text-sm text-gray-500">
-            RA: {raNames.join(", ")}
+            Covered by: {coveredBy.join(", ")}
           </span>
         )}
       </div>
