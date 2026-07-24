@@ -63,6 +63,12 @@ act on all hallways.
 - Prefer server components / server actions for data access where sensible;
   keep the Supabase service key server-side only.
 
+**This may not be the Next.js you know.** The pinned version can differ from
+what's in your training data — APIs, conventions, and file structure may all
+have changed. The authoritative docs ship with the package at
+`node_modules/next/dist/docs/`; read the relevant guide there before writing
+code, and heed any deprecation notices.
+
 ## Visual design
 
 School colors: **navy blue, light orange, black, white.** The app should read as
