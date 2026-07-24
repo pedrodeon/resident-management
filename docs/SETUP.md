@@ -66,6 +66,19 @@ reference data the app depends on, not dev-only fixtures.
 land on the TUDOR HALL dashboard showing all 8 hallways with counts. Sign in as
 `ra1@tudor.test` to see the RA view (no Admin link).
 
+## 7. Run the tests
+
+```bash
+npm test
+```
+
+58 checks over the RLS policies and RPCs. Run these after any change to a
+policy, grant, or `SECURITY DEFINER` function — they are the only thing that
+will catch a silently widened permission.
+
+They run against the linked project and mutate seeded rows (restoring them
+afterwards), so they refuse to start unless the fake seed is present.
+
 ## Notes for later
 
 - **Adding a table?** With "automatically expose new tables" off, a new table

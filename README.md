@@ -47,6 +47,22 @@ npm run dev
 Then sign in at http://localhost:3000 with a seeded staff account
 (`npm run seed:staff` prints the credentials).
 
+## Tests
+
+```bash
+npm test
+```
+
+An access-control suite (Node's built-in test runner, no extra dependencies)
+that asserts the rules above against the live dev database as real signed-in
+users: anon sees nothing, an RA reads building-wide but cannot write the
+roster, only the RD can, the event tables are append-only and reachable only
+through their RPCs, and inspection snapshots are immutable.
+
+It mutates data and restores it, so it **only runs against the fake seed** — a
+guard aborts the run if the seeded fixture `Testy McTestface` is absent, so the
+suite can never be pointed at a database holding real resident records.
+
 ## Sensitive data
 
 This app is designed to hold real students' names, ID numbers, room
