@@ -179,3 +179,61 @@ describe("roster writes are RD-only", () => {
     assert.equal(delErr, null, delErr?.message);
   });
 });
+
+describe("privilege escalation", () => {
+  // The `users` table decides who is RD, so it is the escalation target: an RA
+  // who can write it grants themselves every RD-only power in the app.
+  let raId;
+
+  before(async () => {
+    const { data } = await ra.auth.getUser();
+    raId = data.user.id;
+  });
+
+  test("an RA cannot promote themselves to RD", async () => {
+    const { data } = await ra
+      .from("users")
+      .update({ role: "rd" })
+      .eq("id", raId)
+      .select();
+    assert.equal(data?.length ?? 0, 0, "an RA changed their own role");
+
+    const { data: after } = await admin
+      .from("users")
+      .select("role")
+      .eq("id", raId)
+      .single();
+    assert.equal(after.role, "ra", "RA is no longer an RA — privilege escalated");
+  });
+
+  test("an RA cannot promote anyone else", async () => {
+    const { data } = await ra
+      .from("users")
+      .update({ role: "rd" })
+      .eq("role", "ra")
+      .select();
+    assert.equal(data?.length ?? 0, 0, "an RA promoted staff accounts");
+  });
+
+  test("an RA cannot create a new RD account row", async () => {
+    const { error } = await ra.from("users").insert({
+      id: crypto.randomUUID(),
+      name: "Backdoor",
+      email: "backdoor@tudor.test",
+      role: "rd",
+    });
+    assert.ok(error, "an RA inserted an RD row");
+  });
+
+  test("an RA cannot delete staff accounts", async () => {
+    const { data } = await ra.from("users").delete().eq("role", "rd").select();
+    assert.equal(data?.length ?? 0, 0, "an RA deleted staff");
+  });
+
+  test("an RA cannot grant themselves hallway coverage", async () => {
+    const { error } = await ra
+      .from("hallway_assignments")
+      .insert({ user_id: raId, hallway_id: holiday1.id });
+    assert.ok(error, "an RA assigned themselves a hallway");
+  });
+});
