@@ -8,16 +8,27 @@ export type StaffContext = {
   role: StaffRole;
 };
 
+export type AccessState = {
+  /** A valid Supabase auth session exists. */
+  authenticated: boolean;
+  /** The matching row in public.users, or null if there isn't one. */
+  staff: StaffContext | null;
+};
+
 /**
- * The logged-in staff member with their role, or null if not signed in / not a
- * staff record. Used to gate RD-only UI (defense-in-depth on top of RLS).
+ * Resolve the caller's auth + staff-record state in one place.
+ *
+ * `authenticated` and `staff` are tracked separately on purpose: an
+ * authenticated user with no staff row is a real state (account removed or not
+ * yet set up) that must be handled differently from "not signed in" — see
+ * accessDecision in ./access. Collapsing them is what caused the /login loop.
  */
-export async function getStaffContext(): Promise<StaffContext | null> {
+export async function getAccessState(): Promise<AccessState> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) return { authenticated: false, staff: null };
 
   const { data: staff } = await supabase
     .from("users")
@@ -25,11 +36,23 @@ export async function getStaffContext(): Promise<StaffContext | null> {
     .eq("id", user.id)
     .single();
 
-  if (!staff) return null;
   return {
-    id: staff.id,
-    email: user.email ?? null,
-    name: staff.name,
-    role: staff.role as StaffRole,
+    authenticated: true,
+    staff: staff
+      ? {
+          id: staff.id,
+          email: user.email ?? null,
+          name: staff.name,
+          role: staff.role as StaffRole,
+        }
+      : null,
   };
+}
+
+/**
+ * The logged-in staff member with their role, or null if not signed in / not a
+ * staff record. Used to gate RD-only UI (defense-in-depth on top of RLS).
+ */
+export async function getStaffContext(): Promise<StaffContext | null> {
+  return (await getAccessState()).staff;
 }

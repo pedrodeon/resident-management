@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAccessState } from "@/lib/auth";
+import { accessDecision } from "@/lib/access";
 import { LoginForm } from "./login-form";
 
 export const metadata = {
@@ -7,12 +8,17 @@ export const metadata = {
 };
 
 export default async function LoginPage() {
-  // Already signed in? Straight to the app.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user) redirect("/");
+  const { authenticated, staff } = await getAccessState();
+  switch (accessDecision({ authenticated, hasStaffRecord: staff !== null })) {
+    case "allow":
+      // Already a signed-in staff member — straight to the app.
+      redirect("/");
+    case "redirect-no-access":
+      // Authenticated but no staff row — don't send them to "/", which would
+      // bounce right back here. Terminate at the no-access page.
+      redirect("/no-access");
+    // "redirect-login": not signed in — render the form below.
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-navy px-4 py-12">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getStaffContext } from "@/lib/auth";
+import { getAccessState } from "@/lib/auth";
+import { accessDecision } from "@/lib/access";
 import { signOut } from "./actions";
 
 /**
@@ -13,8 +14,17 @@ export default async function AppLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const staff = await getStaffContext();
-  if (!staff) redirect("/login");
+  const { authenticated, staff } = await getAccessState();
+  switch (accessDecision({ authenticated, hasStaffRecord: staff !== null })) {
+    case "redirect-login":
+      redirect("/login");
+    case "redirect-no-access":
+      // Authenticated but no staff row — send them somewhere terminal instead
+      // of bouncing to /login (which would send them right back here).
+      redirect("/no-access");
+  }
+  // "allow": staff is guaranteed non-null; this also narrows it for TS.
+  if (!staff) redirect("/no-access");
   const isRd = staff.role === "rd";
 
   return (

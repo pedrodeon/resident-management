@@ -72,9 +72,10 @@ land on the TUDOR HALL dashboard showing all 8 hallways with counts. Sign in as
 npm test
 ```
 
-58 checks over the RLS policies and RPCs. Run these after any change to a
-policy, grant, or `SECURITY DEFINER` function — they are the only thing that
-will catch a silently widened permission.
+Checks over the RLS policies, the RPCs, and the auth-redirect rules. Run these
+after any change to a policy, grant, `SECURITY DEFINER` function, or the
+login/access guards — they are the only thing that will catch a silently
+widened permission or a reintroduced redirect loop.
 
 They run against the linked project and mutate seeded rows (restoring them
 afterwards), so they refuse to start unless the fake seed is present.
