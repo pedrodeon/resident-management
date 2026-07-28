@@ -91,8 +91,14 @@ This app stores real students' names, student ID numbers, room assignments,
 contact info, and occupancy/presence logs. That data is sensitive and likely
 covered by FERPA and/or the university's data policies.
 
-- **Develop and test against seed / fake data only.** Do not load real resident
-  records until Residence Life and IT have signed off on where the data lives.
+- **Never develop against real resident records.** Do not load them until
+  Residence Life and IT have signed off on where the data lives. The seed
+  carries only real *building structure* (hallways, rooms — not FERPA data);
+  the resident roster starts empty and is filled through the app.
+- The automated test suite mutates resident rows, so it runs only against a
+  separate fixture database seeded with a fake roster — its guard refuses to
+  start anywhere the fixtures are absent. Never re-seed fake residents into
+  the main project database to make tests pass.
 - Never commit secrets. Keep keys in `.env.local`; ensure `.env*` is gitignored.
 - Never put resident data in URLs, query strings, or logs.
 
@@ -144,6 +150,11 @@ Seed with the 8 hallways in the table above.
 - `hallway_id` (uuid, fk → hallways)
 - `room_number` (text)
 - `capacity` (int)
+
+Seeded with the 84 real Tudor Hall rooms (all capacity 2), unique per
+(hallway, room number) — see `supabase/seed.sql`. Counts per hallway:
+Holiday 1 = 9, Lebanon 1 = 9, Holiday 2A = 11, Holiday 2B = 12,
+Lebanon 2 = 10, Holiday 3A = 11, Holiday 3B = 12, Lebanon 3 = 10.
 
 ### residents (records, not accounts)
 - `id` (uuid, pk)
@@ -316,7 +327,10 @@ Build in this order; each step should be usable before starting the next:
 
 1. Scaffold Next.js + Supabase; auth + login; navy/orange design tokens.
 2. Schema + RLS for users, hallways, hallway_assignments, rooms, residents.
-   Seed the 8 hallways, fake rooms, ~20 fake residents, RD + 2 RAs.
+   Seed the 8 hallways and the 84 real rooms; staff accounts via
+   `npm run seed:staff`. (Dev originally used a fake fixture roster here;
+   it was retired in migration `20260728215914` — don't re-create it in the
+   main database.)
 3. TUDOR HALL dashboard → hallway view → room detail navigation.
 4. Presence toggle + bulk actions on the hallway view (the everyday feature).
 5. Move-in/move-out flow + occupancy_events + the `expected` no-show view.
@@ -335,7 +349,10 @@ notifications.
 ## Working conventions
 
 - Before any non-trivial change, create a git branch.
-- Seed realistic fake data so screens can be developed and demoed without real data.
+- The seed (`supabase/seed.sql`) carries real building structure only — no
+  resident data. For demos, add throwaway residents through the app and
+  remove them after; fake fixture rosters belong only in a separate fixture
+  database for the test suite.
 - Write RLS policies alongside any new table or column that touches resident data.
 - Keep functions and components small; favor readability over cleverness.
 - Ask before adding new dependencies or changing the data model.
