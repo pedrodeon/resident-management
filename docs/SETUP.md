@@ -86,6 +86,12 @@ afterwards), so they refuse to start unless the fake seed is present.
   gets no grants at all. Every migration that adds one must `grant` explicitly
   to `authenticated` (and `service_role` where a script needs it) — an RLS
   policy alone will not grant access.
+- **Storage:** the private `inspection-photos` bucket and its policies are
+  created by the migrations. Staff can upload and view but never overwrite or
+  delete (photos are as immutable as the snapshot they belong to); only the
+  service-role key can remove objects. Abandoned uploads (form closed before
+  saving) may orphan under the bucket — harmless; clear them from the
+  dashboard if they ever add up.
 - **Staff invites** currently set a temporary password shown once in the admin
   UI, because dev has no SMTP. Configure an SMTP provider in Supabase and
   switch `inviteStaff` to `inviteUserByEmail` before real use.

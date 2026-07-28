@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ConditionChip } from "@/components/condition-chip";
+import { PHOTO_BUCKET } from "@/lib/photos";
 import type { InspectionType, ItemCondition } from "@/lib/types";
 
 type InspectionDetail = {
@@ -17,6 +18,7 @@ type InspectionDetail = {
     condition: ItemCondition;
     note: string | null;
     inventory_items: { name: string; sort_order: number } | null;
+    inspection_photos: { id: string; storage_path: string }[];
   }[];
 };
 
@@ -41,7 +43,8 @@ export default async function InspectionPage({
        residents ( full_name ),
        users:inspected_by ( name ),
        inspection_items ( id, condition, note,
-                          inventory_items ( name, sort_order ) )`,
+                          inventory_items ( name, sort_order ),
+                          inspection_photos ( id, storage_path ) )`,
     )
     .eq("id", id)
     .single()
@@ -53,6 +56,23 @@ export default async function InspectionPage({
     (a, b) =>
       (a.inventory_items?.sort_order ?? 0) - (b.inventory_items?.sort_order ?? 0),
   );
+
+  // Short-lived signed URLs for the private bucket, minted under the caller's
+  // RLS — only staff who can SELECT the objects get URLs. Never public URLs.
+  const allPaths = items.flatMap((i) =>
+    i.inspection_photos.map((p) => p.storage_path),
+  );
+  const signedByPath = new Map<string, string>();
+  if (allPaths.length > 0) {
+    const { data: signed } = await supabase.storage
+      .from(PHOTO_BUCKET)
+      .createSignedUrls(allPaths, 3600);
+    for (const entry of signed ?? []) {
+      if (entry.signedUrl && entry.path) {
+        signedByPath.set(entry.path, entry.signedUrl);
+      }
+    }
+  }
   const date = new Date(inspection.timestamp).toLocaleString();
   const room = inspection.rooms;
 
@@ -116,6 +136,31 @@ export default async function InspectionPage({
               )}
             </div>
             <ConditionChip condition={item.condition} />
+            {item.inspection_photos.length > 0 && (
+              <div className="flex w-full flex-wrap gap-2">
+                {item.inspection_photos.map((photo) => {
+                  const url = signedByPath.get(photo.storage_path);
+                  if (!url) return null;
+                  return (
+                    <a
+                      key={photo.id}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Open full size"
+                    >
+                      {/* Signed URLs are short-lived; plain img, no optimizer. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt={`${item.inventory_items?.name} photo`}
+                        className="h-20 w-20 rounded-md border border-gray-200 object-cover"
+                      />
+                    </a>
+                  );
+                })}
+              </div>
+            )}
           </li>
         ))}
       </ul>

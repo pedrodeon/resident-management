@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ConditionChip } from "@/components/condition-chip";
+import { PHOTO_BUCKET } from "@/lib/photos";
 import type { InspectionType, ItemCondition } from "@/lib/types";
 
 type SideInspection = {
@@ -12,6 +13,7 @@ type SideInspection = {
   inspection_items: {
     condition: ItemCondition;
     inventory_items: { id: string; name: string; sort_order: number } | null;
+    inspection_photos: { id: string; storage_path: string }[];
   }[];
 };
 
@@ -30,7 +32,8 @@ const SEVERITY: Record<ItemCondition, number> = {
 };
 
 const SELECT = `id, type, timestamp, room_id,
-   inspection_items ( condition, inventory_items ( id, name, sort_order ) )`;
+   inspection_items ( condition, inventory_items ( id, name, sort_order ),
+                      inspection_photos ( id, storage_path ) )`;
 
 export default async function ComparePage({
   params,
@@ -60,10 +63,15 @@ export default async function ComparePage({
   }
 
   // Union of items by sort_order (template could have changed between snapshots).
-  const byId = new Map<
-    string,
-    { name: string; sort_order: number; left?: ItemCondition; right?: ItemCondition }
-  >();
+  type Row = {
+    name: string;
+    sort_order: number;
+    left?: ItemCondition;
+    right?: ItemCondition;
+    leftPhotos: string[]; // storage paths
+    rightPhotos: string[];
+  };
+  const byId = new Map<string, Row>();
   for (const [side, insp] of [
     ["left", left],
     ["right", right],
@@ -71,12 +79,55 @@ export default async function ComparePage({
     for (const item of insp.inspection_items) {
       const inv = item.inventory_items;
       if (!inv) continue;
-      const entry = byId.get(inv.id) ?? { name: inv.name, sort_order: inv.sort_order };
+      const entry = byId.get(inv.id) ?? {
+        name: inv.name,
+        sort_order: inv.sort_order,
+        leftPhotos: [],
+        rightPhotos: [],
+      };
       entry[side] = item.condition;
+      entry[side === "left" ? "leftPhotos" : "rightPhotos"] =
+        item.inspection_photos.map((p) => p.storage_path);
       byId.set(inv.id, entry);
     }
   }
   const rows = [...byId.values()].sort((x, y) => x.sort_order - y.sort_order);
+
+  // Signed URLs for both sides' photos (private bucket, caller's RLS).
+  const allPaths = rows.flatMap((r) => [...r.leftPhotos, ...r.rightPhotos]);
+  const signedByPath = new Map<string, string>();
+  if (allPaths.length > 0) {
+    const { data: signed } = await supabase.storage
+      .from(PHOTO_BUCKET)
+      .createSignedUrls(allPaths, 3600);
+    for (const entry of signed ?? []) {
+      if (entry.signedUrl && entry.path) {
+        signedByPath.set(entry.path, entry.signedUrl);
+      }
+    }
+  }
+
+  function Thumbs({ paths, label }: { paths: string[]; label: string }) {
+    if (paths.length === 0) return null;
+    return (
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {paths.map((path) => {
+          const url = signedByPath.get(path);
+          if (!url) return null;
+          return (
+            <a key={path} href={url} target="_blank" rel="noreferrer" title="Open full size">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={url}
+                alt={`${label} photo`}
+                className="h-14 w-14 rounded border border-gray-200 object-cover"
+              />
+            </a>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <section>
@@ -137,11 +188,13 @@ export default async function ComparePage({
                   }`}
                 >
                   <td className="px-3 py-2 font-medium">{row.name}</td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2 align-top">
                     {row.left ? <ConditionChip condition={row.left} /> : "—"}
+                    <Thumbs paths={row.leftPhotos} label={row.name} />
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2 align-top">
                     {row.right ? <ConditionChip condition={row.right} /> : "—"}
+                    <Thumbs paths={row.rightPhotos} label={row.name} />
                   </td>
                 </tr>
               );

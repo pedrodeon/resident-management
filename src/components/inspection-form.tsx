@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   createInspection,
   type InspectionItemInput,
 } from "@/app/(app)/rooms/[id]/inspections/new/actions";
+import { createClient } from "@/lib/supabase/client";
+import { downscalePhoto, PHOTO_BUCKET } from "@/lib/photos";
 import type {
   InspectionType,
   InventoryItem,
@@ -13,6 +15,10 @@ import type {
 } from "@/lib/types";
 
 const CONDITIONS: ItemCondition[] = ["good", "fair", "damaged", "missing"];
+
+// A photo picked in the form but not yet uploaded. Uploads happen on save so
+// an abandoned form leaves nothing in the bucket.
+type PendingPhoto = { file: File; previewUrl: string };
 
 export type FormResident = { id: string; full_name: string };
 
@@ -37,10 +43,24 @@ export function InspectionForm({
   );
   const [notes, setNotes] = useState("");
   const [rows, setRows] = useState<InspectionItemInput[]>(
-    template.map((t) => ({ item_id: t.id, condition: "good", note: "" })),
+    template.map((t) => ({ item_id: t.id, condition: "good", note: "", photos: [] })),
   );
+  const [pendingPhotos, setPendingPhotos] = useState<
+    Record<string, PendingPhoto[]>
+  >({});
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Release preview object URLs when the form unmounts.
+  useEffect(() => {
+    return () => {
+      for (const photos of Object.values(pendingPhotos)) {
+        for (const p of photos) URL.revokeObjectURL(p.previewUrl);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function setRow(itemId: string, patch: Partial<InspectionItemInput>) {
     setRows((prev) =>
@@ -48,17 +68,73 @@ export function InspectionForm({
     );
   }
 
+  function addPhotos(itemId: string, files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const added = [...files].map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+    setPendingPhotos((prev) => ({
+      ...prev,
+      [itemId]: [...(prev[itemId] ?? []), ...added],
+    }));
+  }
+
+  function removePhoto(itemId: string, previewUrl: string) {
+    URL.revokeObjectURL(previewUrl);
+    setPendingPhotos((prev) => ({
+      ...prev,
+      [itemId]: (prev[itemId] ?? []).filter((p) => p.previewUrl !== previewUrl),
+    }));
+  }
+
   function submit() {
     setError(null);
     startTransition(async () => {
+      // 1. Upload pending photos to the private bucket under one group id.
+      //    Runs in the browser under the caller's session; storage RLS allows
+      //    staff INSERT only. Photos become immutable the moment they land.
+      const supabase = createClient();
+      const groupId = crypto.randomUUID();
+      const pathsByItem: Record<string, string[]> = {};
+      const total = Object.values(pendingPhotos).reduce(
+        (n, list) => n + list.length,
+        0,
+      );
+      let done = 0;
+
+      for (const [itemId, photos] of Object.entries(pendingPhotos)) {
+        for (const photo of photos) {
+          setUploadStatus(`Uploading photos… (${done + 1}/${total})`);
+          const blob = await downscalePhoto(photo.file);
+          const path = `${groupId}/${itemId}/${done}.jpg`;
+          const { error: uploadError } = await supabase.storage
+            .from(PHOTO_BUCKET)
+            .upload(path, blob, { contentType: "image/jpeg" });
+          if (uploadError) {
+            setUploadStatus(null);
+            setError(`Photo upload failed: ${uploadError.message}`);
+            return; // nothing recorded — the RPC never ran
+          }
+          (pathsByItem[itemId] ??= []).push(path);
+          done += 1;
+        }
+      }
+      setUploadStatus(total > 0 ? "Saving inspection…" : null);
+
+      // 2. Record the snapshot (items + photo paths) atomically via the RPC.
       const result = await createInspection({
         roomId,
         residentId: residentId || null,
         type,
         notes,
-        items: rows,
+        items: rows.map((r) => ({
+          ...r,
+          photos: pathsByItem[r.item_id] ?? [],
+        })),
       });
       // Only returns on error; success redirects server-side.
+      setUploadStatus(null);
       if (result && !result.ok) setError(result.error);
     });
   }
@@ -151,6 +227,46 @@ export function InspectionForm({
                   aria-label={`${item.name} note`}
                   className="min-w-40 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm"
                 />
+
+                {/* Photos: camera on phones (capture), file picker at a desk. */}
+                <label className="cursor-pointer rounded-md border border-gray-300 px-2 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">
+                  + Photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    multiple
+                    className="hidden"
+                    aria-label={`${item.name} photos`}
+                    onChange={(e) => {
+                      addPhotos(item.id, e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+
+                {(pendingPhotos[item.id]?.length ?? 0) > 0 && (
+                  <div className="flex w-full flex-wrap gap-2 pt-1">
+                    {pendingPhotos[item.id].map((photo) => (
+                      <span key={photo.previewUrl} className="relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={photo.previewUrl}
+                          alt={`${item.name} photo preview`}
+                          className="h-16 w-16 rounded-md border border-gray-200 object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(item.id, photo.previewUrl)}
+                          aria-label="Remove photo"
+                          className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-navy text-xs text-white hover:bg-navy-dark"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </li>
             );
           })}
@@ -174,7 +290,7 @@ export function InspectionForm({
           disabled={isPending}
           className="rounded-md bg-navy px-4 py-2.5 font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-60"
         >
-          {isPending ? "Saving…" : "Save inspection"}
+          {isPending ? (uploadStatus ?? "Saving…") : "Save inspection"}
         </button>
         <button
           type="button"

@@ -9,6 +9,8 @@ export type InspectionItemInput = {
   item_id: string;
   condition: ItemCondition;
   note: string;
+  /** Storage paths of photos already uploaded to the inspection-photos bucket. */
+  photos: string[];
 };
 
 export type CreateInspectionInput = {
@@ -37,6 +39,7 @@ export async function createInspection(
       item_id: i.item_id,
       condition: i.condition,
       note: i.note,
+      photos: i.photos,
     })),
   });
 

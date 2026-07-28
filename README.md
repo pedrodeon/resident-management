@@ -19,7 +19,9 @@ See [CLAUDE.md](CLAUDE.md) for the full product spec and data model.
 - **Move-in / move-out** (`/desk`) — search any resident, record check-in or
   check-out, and see who has not arrived yet.
 - **Inspections** — a 12-item template captured as immutable dated snapshots;
-  damage is the diff between two of them.
+  damage is the diff between two of them. Items can carry **photos** (camera
+  capture on phones), stored in a private bucket, immutable like the snapshot,
+  and served only via short-lived signed URLs.
 - **Resident detail** — full record plus occupancy, presence, and room-change
   history.
 - **Admin** (RD only) — residents, rooms, staff invites, hallway coverage, and

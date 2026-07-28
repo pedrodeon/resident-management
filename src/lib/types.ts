@@ -96,3 +96,11 @@ export type InspectionItem = {
   condition: ItemCondition;
   note: string | null;
 };
+
+export type InspectionPhoto = {
+  id: string;
+  inspection_id: string;
+  inspection_item_id: string;
+  storage_path: string;
+  created_at: string;
+};
