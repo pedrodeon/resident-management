@@ -44,3 +44,6 @@ next-env.d.ts
 
 # R console history artifact
 .Rhistory
+
+# "name 2.ext" duplicate artifacts a local tool keeps creating — never commit them
+* 2.*

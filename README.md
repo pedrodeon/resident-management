@@ -39,7 +39,8 @@ RPCs, so a change and its audit record can never diverge.
 ## Setup
 
 Follow [docs/SETUP.md](docs/SETUP.md) — create the Supabase project in its own
-organization, apply migrations, and seed fake data.
+organization, apply migrations, and seed the real building structure (8
+hallways, 84 rooms — no resident data).
 
 ```bash
 npm install
@@ -61,9 +62,11 @@ users: anon sees nothing, an RA reads building-wide but cannot write the
 roster, only the RD can, the event tables are append-only and reachable only
 through their RPCs, and inspection snapshots are immutable.
 
-It mutates data and restores it, so it **only runs against the fake seed** — a
-guard aborts the run if the seeded fixture `Testy McTestface` is absent, so the
-suite can never be pointed at a database holding real resident records.
+It mutates data and restores it, so it **only runs against a fixture
+database** — a guard aborts if the fixture roster (`Testy McTestface`) is
+absent, so the suite can never mutate a database holding real records. The
+linked project's fixtures were retired when the real rooms were seeded, so the
+suite deliberately aborts there; see docs/SETUP.md §7 for how to run it.
 
 ## Sensitive data
 

@@ -40,16 +40,20 @@ npx supabase db push                    # applies supabase/migrations/
 The migrations also seed the 12-item inspection template — that's real
 reference data the app depends on, not dev-only fixtures.
 
-## 5. Seed fake data
+## 5. Seed the building structure
 
-1. **Building + residents** (8 hallways, 24 rooms, 20 fake residents):
+1. **Hallways + rooms** (the real building: 8 hallways, 84 rooms, capacity 2):
 
    ```sh
    npx supabase db push --include-seed
    ```
 
-   Applies `supabase/seed.sql`. All fake data — real resident records must
-   never enter dev. (You can also paste the file into the dashboard SQL editor.)
+   Applies `supabase/seed.sql`. The seed carries only real building
+   structure — residents are added through the app (RD → Admin) and real
+   resident records still require Residence Life / IT sign-off first.
+   Caveat: the CLI only *executes* a seed file it hasn't recorded before;
+   on an already-seeded database, edits to `seed.sql` must be applied by
+   pasting it into the dashboard SQL editor (it's idempotent).
 
 2. **Staff accounts (RD + 2 RAs):**
 
@@ -63,8 +67,9 @@ reference data the app depends on, not dev-only fixtures.
 ## 6. Smoke test
 
 `npm run dev` → http://localhost:3000 → sign in as `rd@tudor.test`. You should
-land on the TUDOR HALL dashboard showing all 8 hallways with counts. Sign in as
-`ra1@tudor.test` to see the RA view (no Admin link).
+land on the TUDOR HALL dashboard showing all 8 hallways (counts are zero until
+residents are added). Sign in as `ra1@tudor.test` to see the RA view (no Admin
+link).
 
 ## 7. Run the tests
 
@@ -77,8 +82,11 @@ after any change to a policy, grant, `SECURITY DEFINER` function, or the
 login/access guards — they are the only thing that will catch a silently
 widened permission or a reintroduced redirect loop.
 
-They run against the linked project and mutate seeded rows (restoring them
-afterwards), so they refuse to start unless the fake seed is present.
+They run against the linked project and mutate fixture rows, so they refuse to
+start unless the fake fixture roster is present. **The dev fixtures were
+retired (migration `20260728215914`), so the suite deliberately aborts against
+this database** — to run it, point `.env.local` at a separate fixture project
+seeded with the old fixture roster, or re-seed fixtures knowingly.
 
 ## Notes for later
 
@@ -95,5 +103,6 @@ afterwards), so they refuse to start unless the fake seed is present.
 - **Staff invites** currently set a temporary password shown once in the admin
   UI, because dev has no SMTP. Configure an SMTP provider in Supabase and
   switch `inviteStaff` to `inviteUserByEmail` before real use.
-- **Before any real deployment:** delete the `*@tudor.test` dev accounts and the
-  fake resident rows.
+- **Before any real deployment:** delete the `*@tudor.test` dev accounts
+  (the fake resident rows are already gone — retired in migration
+  `20260728215914`).
