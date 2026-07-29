@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { BackLink } from "@/components/back-link";
 import { InspectionForm } from "@/components/inspection-form";
 import type { InspectionType, InventoryItem } from "@/lib/types";
 
@@ -51,6 +52,11 @@ export default async function NewInspectionPage({
 
   return (
     <section>
+      {/* Up one level: new-inspection form → its room. */}
+      <div className="mb-3">
+        <BackLink href={`/rooms/${room.id}`} label={`Room ${room.room_number}`} />
+      </div>
+
       <nav className="text-sm text-gray-500">
         <Link href="/" className="hover:text-navy hover:underline">
           TUDOR HALL

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getStaffContext } from "@/lib/auth";
+import { BackLink } from "@/components/back-link";
 import {
   StaffManager,
   type AdminStaff,
@@ -39,6 +40,11 @@ export default async function AdminStaffPage() {
 
   return (
     <section>
+      {/* Up one level: section → admin index. */}
+      <div className="mb-3">
+        <BackLink href="/admin" label="Admin" />
+      </div>
+
       <h1 className="text-2xl font-semibold text-navy">Staff</h1>
       <p className="mt-1 text-sm text-gray-500">
         Hallway coverage is metadata only — every staff member can access every

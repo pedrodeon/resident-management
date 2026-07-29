@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BackLink } from "@/components/back-link";
 
 const CARDS = [
   { href: "/admin/residents", label: "Residents", desc: "Add, edit, and remove residents; assign rooms." },
@@ -10,6 +11,11 @@ const CARDS = [
 export default function AdminIndex() {
   return (
     <section>
+      {/* Up one level: admin → dashboard. */}
+      <div className="mb-3">
+        <BackLink href="/" label="TUDOR HALL" />
+      </div>
+
       <h1 className="text-2xl font-semibold text-navy">Admin</h1>
       <ul className="mt-6 grid gap-3 sm:grid-cols-2">
         {CARDS.map((c) => (

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { BackLink } from "@/components/back-link";
 import { DeskConsole, type DeskResident } from "@/components/desk-console";
 import type { OccupancyStatus } from "@/lib/types";
 
@@ -42,6 +43,11 @@ export default async function DeskPage() {
 
   return (
     <section>
+      {/* Up one level: desk → dashboard. */}
+      <div className="mb-3">
+        <BackLink href="/" label="TUDOR HALL" />
+      </div>
+
       <h1 className="text-2xl font-semibold text-navy">Move-in / Move-out</h1>
       <p className="mt-1 text-sm text-gray-500">
         Search any resident to record a check-in or check-out.

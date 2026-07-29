@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { BackLink } from "@/components/back-link";
 import { ConditionChip } from "@/components/condition-chip";
 import { PHOTO_BUCKET } from "@/lib/photos";
 import type { InspectionType, ItemCondition } from "@/lib/types";
@@ -78,6 +79,11 @@ export default async function InspectionPage({
 
   return (
     <section>
+      {/* Up one level: inspection snapshot → its room. */}
+      <div className="mb-3">
+        <BackLink href={`/rooms/${room.id}`} label={`Room ${room.room_number}`} />
+      </div>
+
       <nav className="text-sm text-gray-500">
         <Link href="/" className="hover:text-navy hover:underline">
           TUDOR HALL

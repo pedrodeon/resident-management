@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { BackLink } from "@/components/back-link";
 import {
   ResidentsManager,
   type AdminResident,
@@ -56,6 +57,11 @@ export default async function AdminResidentsPage() {
 
   return (
     <section>
+      {/* Up one level: section → admin index. */}
+      <div className="mb-3">
+        <BackLink href="/admin" label="Admin" />
+      </div>
+
       <h1 className="text-2xl font-semibold text-navy">Residents</h1>
       <div className="mt-6">
         <ResidentsManager residents={adminResidents} rooms={roomChoices} />

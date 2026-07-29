@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { BackLink } from "@/components/back-link";
 
 // The weekly room-check workflow's front door (linked from the dashboard
 // tile): every room grouped by hallway, with its most recent check and a
@@ -44,6 +45,11 @@ export default async function RoomChecksIndexPage() {
 
   return (
     <section>
+      {/* Up one level: room-checks index → dashboard. */}
+      <div className="mb-3">
+        <BackLink href="/" label="TUDOR HALL" />
+      </div>
+
       <h1 className="text-2xl font-semibold text-navy">Room checks</h1>
       <p className="mt-1 text-sm text-gray-500">
         Weekly condition checks. Pick a room to record this week&rsquo;s.

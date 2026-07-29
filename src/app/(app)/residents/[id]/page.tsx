@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getStaffContext } from "@/lib/auth";
+import { BackLink } from "@/components/back-link";
 import { StatusChip } from "@/components/status-chip";
 import { ReassignRoom, type RoomOption } from "@/components/reassign-room";
 import type { OccupancyStatus } from "@/lib/types";
@@ -116,6 +117,11 @@ export default async function ResidentPage({
 
   return (
     <section>
+      {/* Up one level: resident → their room. */}
+      <div className="mb-3">
+        <BackLink href={`/rooms/${room.id}`} label={`Room ${room.room_number}`} />
+      </div>
+
       <nav className="text-sm text-gray-500">
         <Link href="/" className="hover:text-navy hover:underline">
           TUDOR HALL

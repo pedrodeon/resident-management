@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { BackLink } from "@/components/back-link";
 import { ConditionChip } from "@/components/condition-chip";
 import { PHOTO_BUCKET } from "@/lib/photos";
 import type { InspectionType, ItemCondition } from "@/lib/types";
@@ -10,6 +11,7 @@ type SideInspection = {
   type: InspectionType;
   timestamp: string;
   room_id: string;
+  rooms: { room_number: string } | null;
   inspection_items: {
     condition: ItemCondition;
     inventory_items: { id: string; name: string; sort_order: number } | null;
@@ -31,7 +33,7 @@ const SEVERITY: Record<ItemCondition, number> = {
   missing: 3,
 };
 
-const SELECT = `id, type, timestamp, room_id,
+const SELECT = `id, type, timestamp, room_id, rooms ( room_number ),
    inspection_items ( condition, inventory_items ( id, name, sort_order ),
                       inspection_photos ( id, storage_path ) )`;
 
@@ -131,6 +133,14 @@ export default async function ComparePage({
 
   return (
     <section>
+      {/* Up one level: compare → the room. */}
+      <div className="mb-3">
+        <BackLink
+          href={`/rooms/${roomId}`}
+          label={left.rooms ? `Room ${left.rooms.room_number}` : "Room"}
+        />
+      </div>
+
       <nav className="text-sm text-gray-500">
         <Link href="/" className="hover:text-navy hover:underline">
           TUDOR HALL

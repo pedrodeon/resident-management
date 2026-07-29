@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { BackLink } from "@/components/back-link";
 import { RoomsManager, type HallwayGroup } from "@/components/admin/rooms-manager";
 
 type HallwayRow = {
@@ -34,6 +35,11 @@ export default async function AdminRoomsPage() {
 
   return (
     <section>
+      {/* Up one level: section → admin index. */}
+      <div className="mb-3">
+        <BackLink href="/admin" label="Admin" />
+      </div>
+
       <h1 className="text-2xl font-semibold text-navy">Rooms</h1>
       <div className="mt-6">
         <RoomsManager hallways={hallways} />
