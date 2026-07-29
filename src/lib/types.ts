@@ -97,6 +97,22 @@ export type InspectionItem = {
   note: string | null;
 };
 
+/** Room-check rating: 1 = poor … 5 = excellent. */
+export type Rating = 1 | 2 | 3 | 4 | 5;
+
+export type RoomCheck = {
+  id: string;
+  room_id: string;
+  checked_by: string;
+  timestamp: string;
+  floor_cleanliness: Rating;
+  trash: Rating;
+  laundry: Rating;
+  overall: Rating;
+  notes: string | null;
+  prohibited_items: string | null;
+};
+
 export type InspectionPhoto = {
   id: string;
   inspection_id: string;

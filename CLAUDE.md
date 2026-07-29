@@ -243,10 +243,24 @@ room_change_events).
 Creating a `move_in` inspection should be part of the check-in flow, and a
 `move_out` inspection part of the check-out flow.
 
+### room_checks (weekly RA condition ratings — added post-v1)
+- `id` (uuid, pk)
+- `room_id` (uuid, fk → rooms)
+- `checked_by` (uuid, fk → users) — RLS pins this to the caller
+- `timestamp` (timestamptz, default now())
+- `floor_cleanliness`, `trash`, `laundry`, `overall` (int, 1–5; 1 = poor,
+  5 = excellent)
+- `notes` (text, nullable)
+- `prohibited_items` (text, nullable) — non-empty gets the orange accent
+
+Append-only and immutable like the event tables (no update/delete for anyone).
+Recorded from the "Room check" button on room detail.
+
 ### Relationships
 - A hallway has many rooms. A room has many residents.
 - A resident has many occupancy_events, presence_events, and room_change_events.
 - A room has many inspections; an inspection has one row per inventory_item.
+- A room has many room_checks; each records the staff member who did it.
 - Every event and inspection records the staff member who performed it.
 
 ## Roles & permissions (drives the RLS rules)
@@ -302,7 +316,8 @@ column-level policies. Not worth the complexity in v1.
 
 4. **Room detail** — the residents living in that room with their **student ID
    numbers**, room capacity, and a link to the room's inspection history.
-   Room reassignment controls appear here for the RD only.
+   Room reassignment controls appear here for the RD only. Also hosts the
+   **Room check** button and the room's check history (weekly RA ratings).
 
 5. **Inspection sheet** — create a new inspection for a room: all 12 template
    items, each with a condition (good/fair/damaged/missing) and a note. View past

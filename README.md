@@ -22,6 +22,9 @@ See [CLAUDE.md](CLAUDE.md) for the full product spec and data model.
   damage is the diff between two of them. Items can carry **photos** (camera
   capture on phones), stored in a private bucket, immutable like the snapshot,
   and served only via short-lived signed URLs.
+- **Room checks** — weekly RA condition ratings per room (floor, trash,
+  laundry, overall on a 1–5 scale) with notes and prohibited-items flags,
+  recorded append-only from the room page.
 - **Resident detail** — full record plus occupancy, presence, and room-change
   history.
 - **Admin** (RD only) — residents, rooms, staff invites, hallway coverage, and
