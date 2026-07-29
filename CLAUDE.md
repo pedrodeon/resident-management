@@ -230,6 +230,20 @@ migration.
 - `condition` (enum: `good` | `fair` | `damaged` | `missing`)
 - `note` (text, nullable)
 
+### inspection_signatures (move-in attestations — added post-v1)
+- `id` (uuid, pk)
+- `inspection_id` (uuid, fk → inspections) — binds to that exact snapshot
+- `role` (enum: `resident` | `ra`) — unique per (inspection, role)
+- `storage_path` (text, unique) — PNG in the private inspection-photos bucket
+- `signed_at` (timestamptz, default now())
+- `captured_by` (uuid, fk → users) — RLS pins this to the caller
+
+The resident signs "I agree the recorded conditions are accurate"; the RA
+signs "I confirm I conducted this inspection." Immutable once captured (no
+update/delete for any role; the unique key blocks re-signing). **A check-in
+cannot be finalized until both exist** — record_occupancy refuses `check_in`
+without a fully-signed move_in inspection, so the gate holds at the database.
+
 ### Why inspections are snapshots, not one editable sheet per room
 
 Damage control only works if you can compare a room's condition at move-in
@@ -327,8 +341,11 @@ column-level policies. Not worth the complexity in v1.
 6. **Move-in / move-out** — the semester occupancy flow, reachable from the desk.
    Search ANY resident building-wide by name or student ID, see status, record
    check-in or check-out, and create the paired move_in/move_out inspection.
-   Optimized for move-in day throughput and prominently shows **who is still
-   `expected`** so the RD can chase no-shows.
+   Prominently shows **who is still `expected`** so the RD can chase no-shows.
+   Check-in order (post-v1): move_in inspection first → resident + RA sign on
+   the inspection review → only then can the check-in be finalized (enforced
+   by record_occupancy). Move-out keeps the original order: check out, then
+   the paired inspection is offered.
 
 7. **Resident detail** — full record (room, student ID, contacts), plus occupancy
    history, presence history, and room-change history.

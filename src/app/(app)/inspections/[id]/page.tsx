@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getStaffContext } from "@/lib/auth";
 import { BackLink } from "@/components/back-link";
 import { ConditionChip } from "@/components/condition-chip";
+import {
+  InspectionSignatures,
+  type StoredSignature,
+} from "@/components/inspection-signatures";
 import { PHOTO_BUCKET } from "@/lib/photos";
-import type { InspectionType, ItemCondition } from "@/lib/types";
+import type { InspectionType, ItemCondition, SignatureRole } from "@/lib/types";
 
 type InspectionDetail = {
   id: string;
@@ -12,8 +17,13 @@ type InspectionDetail = {
   timestamp: string;
   notes: string | null;
   rooms: { id: string; room_number: string; hallways: { id: string; name: string } | null } | null;
-  residents: { full_name: string } | null;
+  residents: { id: string; full_name: string; occupancy_status: string } | null;
   users: { name: string } | null;
+  inspection_signatures: {
+    role: SignatureRole;
+    storage_path: string;
+    signed_at: string;
+  }[];
   inspection_items: {
     id: string;
     condition: ItemCondition;
@@ -41,8 +51,9 @@ export default async function InspectionPage({
     .select(
       `id, type, timestamp, notes,
        rooms ( id, room_number, hallways ( id, name ) ),
-       residents ( full_name ),
+       residents ( id, full_name, occupancy_status ),
        users:inspected_by ( name ),
+       inspection_signatures ( role, storage_path, signed_at ),
        inspection_items ( id, condition, note,
                           inventory_items ( name, sort_order ),
                           inspection_photos ( id, storage_path ) )`,
@@ -53,6 +64,10 @@ export default async function InspectionPage({
 
   if (error || !inspection || !inspection.rooms) notFound();
 
+  // The attestation step applies to move-in inspections tied to a resident.
+  const signable = inspection.type === "move_in" && inspection.residents !== null;
+  const staff = signable ? await getStaffContext() : null;
+
   const items = [...inspection.inspection_items].sort(
     (a, b) =>
       (a.inventory_items?.sort_order ?? 0) - (b.inventory_items?.sort_order ?? 0),
@@ -60,9 +75,11 @@ export default async function InspectionPage({
 
   // Short-lived signed URLs for the private bucket, minted under the caller's
   // RLS — only staff who can SELECT the objects get URLs. Never public URLs.
-  const allPaths = items.flatMap((i) =>
-    i.inspection_photos.map((p) => p.storage_path),
-  );
+  // Photos and signature images live in the same bucket.
+  const allPaths = [
+    ...items.flatMap((i) => i.inspection_photos.map((p) => p.storage_path)),
+    ...inspection.inspection_signatures.map((s) => s.storage_path),
+  ];
   const signedByPath = new Map<string, string>();
   if (allPaths.length > 0) {
     const { data: signed } = await supabase.storage
@@ -114,6 +131,11 @@ export default async function InspectionPage({
           {TYPE_LABEL[inspection.type]} inspection
         </h1>
         <span className="text-sm text-gray-500">{date}</span>
+        {signable && inspection.inspection_signatures.length < 2 && (
+          <span className="rounded-full border-l-4 border-accent bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-ink">
+            awaiting signatures
+          </span>
+        )}
       </div>
       <p className="mt-1 text-sm text-gray-500">
         Room {room.room_number}
@@ -170,6 +192,27 @@ export default async function InspectionPage({
           </li>
         ))}
       </ul>
+
+      {/* Attestations: resident + RA sign against this exact snapshot; the
+          check-in cannot be finalized until both exist. */}
+      {signable && inspection.residents && (
+        <InspectionSignatures
+          inspectionId={inspection.id}
+          residentId={inspection.residents.id}
+          residentName={inspection.residents.full_name}
+          staffName={staff?.name ?? "RA"}
+          hallwayId={room.hallways?.id ?? null}
+          residentStatus={inspection.residents.occupancy_status}
+          stored={inspection.inspection_signatures.flatMap(
+            (s): StoredSignature[] => {
+              const url = signedByPath.get(s.storage_path);
+              return url
+                ? [{ role: s.role, url, signed_at: s.signed_at }]
+                : [];
+            },
+          )}
+        />
+      )}
     </section>
   );
 }

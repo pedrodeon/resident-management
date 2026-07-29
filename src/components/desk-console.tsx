@@ -15,15 +15,15 @@ export type DeskResident = {
   hallway_id: string;
   hallway_name: string;
   occupancy_status: OccupancyStatus;
+  /** Best move-in inspection: id + how many of the two signatures exist. */
+  move_in: { inspectionId: string; signatures: number } | null;
 };
 
-// After a check-in/out, prompt the paired inspection (CLAUDE.md: creating a
-// move_in inspection is part of the check-in flow). A link, not a forced
-// redirect, so move-in-day throughput stays fast.
+// After a check-out, prompt the paired move-out inspection. (Move-in is the
+// other way around now: the signed inspection comes FIRST and gates check-in.)
 type JustActed = {
   residentName: string;
   roomId: string;
-  inspectionType: "move_in" | "move_out";
 };
 
 export function DeskConsole({ residents }: { residents: DeskResident[] }) {
@@ -69,14 +69,49 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
       );
       if (!result.ok) {
         setError(result.error);
-      } else {
+      } else if (type === "check_out") {
         setJustActed({
           residentName: resident.full_name,
           roomId: resident.room_id,
-          inspectionType: type === "check_in" ? "move_in" : "move_out",
         });
       }
     });
+  }
+
+  // The move-in gate: where an expected resident is in the signed-inspection
+  // flow decides what the desk offers. The record_occupancy RPC enforces the
+  // same rule server-side, so this is presentation, not the boundary.
+  function CheckInControl({ resident }: { resident: DeskResident }) {
+    if (!resident.move_in) {
+      return (
+        <Link
+          href={`/rooms/${resident.room_id}/inspections/new?type=move_in&resident=${resident.id}`}
+          className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark"
+        >
+          Move-in inspection
+        </Link>
+      );
+    }
+    if (resident.move_in.signatures < 2) {
+      return (
+        <Link
+          href={`/inspections/${resident.move_in.inspectionId}`}
+          className="rounded-md border-l-4 border-accent bg-accent-soft px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-accent"
+        >
+          Signatures ({resident.move_in.signatures}/2)
+        </Link>
+      );
+    }
+    return (
+      <button
+        type="button"
+        onClick={() => act(resident, "check_in")}
+        disabled={isPending}
+        className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
+      >
+        Check in
+      </button>
+    );
   }
 
   return (
@@ -93,17 +128,14 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
       {justActed && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-navy/20 bg-navy/5 px-3 py-2 text-sm">
           <span>
-            Recorded for <strong>{justActed.residentName}</strong>. Start the
-            paired {justActed.inspectionType === "move_in" ? "move-in" : "move-out"}{" "}
-            inspection?
+            Checked out <strong>{justActed.residentName}</strong>. Start the
+            paired move-out inspection?
           </span>
           <Link
-            href={`/rooms/${justActed.roomId}/inspections/new?type=${justActed.inspectionType}`}
+            href={`/rooms/${justActed.roomId}/inspections/new?type=move_out`}
             className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark"
           >
-            {justActed.inspectionType === "move_in"
-              ? "Move-in inspection"
-              : "Move-out inspection"}
+            Move-out inspection
           </Link>
         </div>
       )}
@@ -133,14 +165,7 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
                     {resident.hallway_name} · Room {resident.room_number}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => act(resident, "check_in")}
-                  disabled={isPending}
-                  className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
-                >
-                  Check in
-                </button>
+                <CheckInControl resident={resident} />
               </li>
             ))}
           </ul>
@@ -163,7 +188,8 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
 
         {query.trim() === "" ? (
           <p className="mt-2 text-xs text-gray-400">
-            After a check-in or check-out, you can start the paired inspection.
+            Check-in requires a move-in inspection signed by the resident and
+            the RA; the paired move-out inspection is offered after check-out.
           </p>
         ) : results.length === 0 ? (
           <p className="mt-3 text-sm text-gray-500">No match for “{query}”.</p>
@@ -199,14 +225,7 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
                     isPresent={true}
                   />
                   {resident.occupancy_status === "expected" && (
-                    <button
-                      type="button"
-                      onClick={() => act(resident, "check_in")}
-                      disabled={isPending}
-                      className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
-                    >
-                      Check in
-                    </button>
+                    <CheckInControl resident={resident} />
                   )}
                   {resident.occupancy_status === "checked_in" && (
                     <button

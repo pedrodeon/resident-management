@@ -113,6 +113,17 @@ export type RoomCheck = {
   prohibited_items: string | null;
 };
 
+export type SignatureRole = "resident" | "ra";
+
+export type InspectionSignature = {
+  id: string;
+  inspection_id: string;
+  role: SignatureRole;
+  storage_path: string;
+  signed_at: string;
+  captured_by: string;
+};
+
 export type InspectionPhoto = {
   id: string;
   inspection_id: string;

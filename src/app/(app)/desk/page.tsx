@@ -13,6 +13,11 @@ type ResidentRow = {
     room_number: string;
     hallways: { id: string; name: string } | null;
   } | null;
+  inspections: {
+    id: string;
+    type: string;
+    inspection_signatures: { role: string }[];
+  }[];
 };
 
 export const metadata = { title: "Move-in / Move-out — Tudor Hall" };
@@ -23,23 +28,36 @@ export default async function DeskPage() {
     .from("residents")
     .select(
       `id, full_name, student_id, room_id, occupancy_status,
-       rooms ( room_number, hallways ( id, name ) )`,
+       rooms ( room_number, hallways ( id, name ) ),
+       inspections ( id, type, inspection_signatures ( role ) )`,
     )
     .order("full_name")
     .overrideTypes<ResidentRow[]>();
 
   const residents: DeskResident[] = (data ?? [])
     .filter((r) => r.rooms?.hallways)
-    .map((r) => ({
-      id: r.id,
-      full_name: r.full_name,
-      student_id: r.student_id,
-      room_id: r.room_id,
-      room_number: r.rooms!.room_number,
-      hallway_id: r.rooms!.hallways!.id,
-      hallway_name: r.rooms!.hallways!.name,
-      occupancy_status: r.occupancy_status,
-    }));
+    .map((r) => {
+      // Check-in readiness: the move-in inspection with the most distinct
+      // signature roles (the RPC enforces the same both-signatures rule).
+      const moveIns = r.inspections
+        .filter((i) => i.type === "move_in")
+        .map((i) => ({
+          inspectionId: i.id,
+          signatures: new Set(i.inspection_signatures.map((s) => s.role)).size,
+        }))
+        .sort((a, b) => b.signatures - a.signatures);
+      return {
+        id: r.id,
+        full_name: r.full_name,
+        student_id: r.student_id,
+        room_id: r.room_id,
+        room_number: r.rooms!.room_number,
+        hallway_id: r.rooms!.hallways!.id,
+        hallway_name: r.rooms!.hallways!.name,
+        occupancy_status: r.occupancy_status,
+        move_in: moveIns[0] ?? null,
+      };
+    });
 
   return (
     <section>

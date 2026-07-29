@@ -28,18 +28,22 @@ export function InspectionForm({
   residents,
   template,
   defaultType,
+  defaultResidentId,
 }: {
   roomId: string;
   roomNumber: string;
   residents: FormResident[];
   template: InventoryItem[];
   defaultType: InspectionType;
+  defaultResidentId?: string;
 }) {
   const router = useRouter();
   const [type, setType] = useState<InspectionType>(defaultType);
-  // move_in/out are tied to a resident; default to the first if there is one.
+  // move_in/out are tied to a resident; preselect the one the desk sent us
+  // for, else default to the first in the room.
   const [residentId, setResidentId] = useState<string>(
-    defaultType !== "periodic" && residents[0] ? residents[0].id : "",
+    defaultResidentId ??
+      (defaultType !== "periodic" && residents[0] ? residents[0].id : ""),
   );
   const [notes, setNotes] = useState("");
   const [rows, setRows] = useState<InspectionItemInput[]>(

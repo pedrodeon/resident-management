@@ -19,10 +19,10 @@ export default async function NewInspectionPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ type?: string }>;
+  searchParams: Promise<{ type?: string; resident?: string }>;
 }) {
   const { id } = await params;
-  const { type } = await searchParams;
+  const { type, resident } = await searchParams;
   const supabase = await createClient();
 
   const [{ data: room, error }, { data: template }] = await Promise.all([
@@ -49,6 +49,12 @@ export default async function NewInspectionPage({
     type && VALID_TYPES.includes(type as InspectionType)
       ? (type as InspectionType)
       : "periodic";
+
+  // Preselect a resident when the desk sent us here — only if the id really
+  // belongs to this room.
+  const defaultResidentId = room.residents.some((r) => r.id === resident)
+    ? resident
+    : undefined;
 
   return (
     <section>
@@ -90,6 +96,7 @@ export default async function NewInspectionPage({
           residents={room.residents}
           template={template ?? []}
           defaultType={defaultType}
+          defaultResidentId={defaultResidentId}
         />
       </div>
     </section>

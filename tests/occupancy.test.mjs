@@ -1,6 +1,10 @@
 // Move-in / move-out (step 5). Occupancy is the one roster write ANY staff may
 // record, and it must follow a one-way lifecycle: a resident checks in once and
 // out once. residents.occupancy_status is only a cache of the event log.
+//
+// Since the two-signature step landed, check_in additionally requires a
+// move-in inspection signed by BOTH the resident and the RA — covered below
+// and in move-in-signatures.test.mjs.
 
 import { test, before, after, describe } from "node:test";
 import assert from "node:assert/strict";
@@ -30,8 +34,71 @@ after(async () => {
   await restoreResident(PETIT, { occupancy_status: "expected", is_present: true });
 });
 
+// Check-in is gated on a fully-signed move-in inspection; build one for a
+// resident so the lifecycle tests can proceed past the gate.
+async function createSignedMoveIn(client, userId, residentId, roomId) {
+  const { data: item } = await adminClient()
+    .from("inventory_items")
+    .select("id")
+    .order("sort_order")
+    .limit(1)
+    .single();
+  const { data: inspectionId, error } = await client.rpc("create_inspection", {
+    target_room: roomId,
+    target_resident: residentId,
+    inspection_type: "move_in",
+    inspection_notes: "suite: signed move-in",
+    items: [{ item_id: item.id, condition: "good", note: null }],
+  });
+  if (error) throw new Error(`setup inspection failed: ${error.message}`);
+  for (const role of ["resident", "ra"]) {
+    const { error: sigErr } = await client.from("inspection_signatures").insert({
+      inspection_id: inspectionId,
+      role,
+      storage_path: `signatures/${inspectionId}/${role}-${crypto.randomUUID()}.png`,
+      captured_by: userId,
+    });
+    if (sigErr) throw new Error(`setup signature failed: ${sigErr.message}`);
+  }
+  return inspectionId;
+}
+
 describe("record_occupancy", () => {
-  test("an RA can check in an expected resident", async () => {
+  test("check_in is rejected while the move-in inspection is unsigned", async () => {
+    // No move-in inspection at all yet.
+    const { error } = await ra.rpc("record_occupancy", {
+      target_resident: petit.id,
+      event_type: "check_in",
+    });
+    assert.ok(error, "checked in without any move-in inspection");
+    assert.match(error.message, /signed/i, "error should explain the gate");
+  });
+
+  test("check_in is rejected when only one of two signatures exists", async () => {
+    const { data: inspectionId } = await ra.rpc("create_inspection", {
+      target_room: petit.room_id,
+      target_resident: petit.id,
+      inspection_type: "move_in",
+      inspection_notes: "suite: half-signed",
+      items: [],
+    });
+    const { data: raUser } = await ra.auth.getUser();
+    await ra.from("inspection_signatures").insert({
+      inspection_id: inspectionId,
+      role: "resident",
+      storage_path: `signatures/${inspectionId}/resident-${crypto.randomUUID()}.png`,
+      captured_by: raUser.user.id,
+    });
+
+    const { error } = await ra.rpc("record_occupancy", {
+      target_resident: petit.id,
+      event_type: "check_in",
+    });
+    assert.ok(error, "checked in with a half-signed inspection");
+  });
+
+  test("an RA can check in an expected resident once both have signed", async () => {
+    await createSignedMoveIn(ra, raId, petit.id, petit.room_id);
     const before = await eventCount("occupancy_events", petit.id);
 
     const { error } = await ra.rpc("record_occupancy", {
