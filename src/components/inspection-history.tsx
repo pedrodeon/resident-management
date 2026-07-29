@@ -38,23 +38,19 @@ export function InspectionHistory({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-          Inspections
-        </h2>
-        {/* Room-level entry point is the periodic inspection; move-in and
-            move-out inspections are launched from a resident's own screen,
-            where they gate that resident's check-in / check-out. */}
-        <Link
-          href={`/rooms/${roomId}/inspections/new?type=periodic`}
-          className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark"
-        >
-          Periodic inspection
-        </Link>
-      </div>
+      {/* No create button here on purpose: the only inspection types are
+          move-in and move-out, and each belongs to one resident, so they are
+          started from that resident's screen as part of check-in / check-out.
+          This section is history + compare. */}
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+        Inspections
+      </h2>
 
       {inspections.length === 0 ? (
-        <p className="mt-2 text-sm text-gray-500">No inspections yet.</p>
+        <p className="mt-2 text-sm text-gray-500">
+          No inspections yet. Move-in and move-out inspections are recorded from
+          a resident&rsquo;s screen, as part of their check-in or check-out.
+        </p>
       ) : (
         <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
           {inspections.map((insp) => (

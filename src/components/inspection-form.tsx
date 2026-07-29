@@ -9,7 +9,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { downscalePhoto, PHOTO_BUCKET } from "@/lib/photos";
 import type {
-  InspectionType,
+  CreatableInspectionType,
   InventoryItem,
   ItemCondition,
 } from "@/lib/types";
@@ -34,16 +34,15 @@ export function InspectionForm({
   roomNumber: string;
   residents: FormResident[];
   template: InventoryItem[];
-  defaultType: InspectionType;
+  defaultType: CreatableInspectionType;
   defaultResidentId?: string;
 }) {
   const router = useRouter();
-  const [type, setType] = useState<InspectionType>(defaultType);
-  // move_in/out are tied to a resident; preselect the one the desk sent us
-  // for, else default to the first in the room.
+  const [type, setType] = useState<CreatableInspectionType>(defaultType);
+  // Both inspection types bracket one resident's stay, so a resident is
+  // required: preselect the one we were sent for, else the first in the room.
   const [residentId, setResidentId] = useState<string>(
-    defaultResidentId ??
-      (defaultType !== "periodic" && residents[0] ? residents[0].id : ""),
+    defaultResidentId ?? residents[0]?.id ?? "",
   );
   const [notes, setNotes] = useState("");
   const [rows, setRows] = useState<InspectionItemInput[]>(
@@ -159,28 +158,25 @@ export function InspectionForm({
           <span className="font-medium">Type</span>
           <select
             value={type}
-            onChange={(e) => setType(e.target.value as InspectionType)}
+            onChange={(e) =>
+              setType(e.target.value as CreatableInspectionType)
+            }
             className="rounded-md border border-gray-300 px-3 py-2 text-base"
           >
             <option value="move_in">Move-in</option>
             <option value="move_out">Move-out</option>
-            <option value="periodic">Periodic</option>
           </select>
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">
-            Resident{" "}
-            <span className="font-normal text-gray-400">
-              (for move-in / move-out)
-            </span>
-          </span>
+          <span className="font-medium">Resident</span>
           <select
             value={residentId}
             onChange={(e) => setResidentId(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 text-base"
+            disabled={residents.length === 0}
+            className="rounded-md border border-gray-300 px-3 py-2 text-base disabled:bg-gray-50 disabled:text-gray-400"
           >
-            <option value="">None (periodic)</option>
+            {residents.length === 0 && <option value="">No residents</option>}
             {residents.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.full_name}
@@ -189,6 +185,13 @@ export function InspectionForm({
           </select>
         </label>
       </div>
+
+      {residents.length === 0 && (
+        <p className="rounded-md border-l-4 border-accent bg-accent-soft px-3 py-2 text-sm text-ink">
+          This room has no residents. Move-in and move-out inspections record
+          one resident&rsquo;s condition report, so assign a resident first.
+        </p>
+      )}
 
       <div>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
@@ -291,7 +294,7 @@ export function InspectionForm({
         <button
           type="button"
           onClick={submit}
-          disabled={isPending}
+          disabled={isPending || residentId === ""}
           className="rounded-md bg-navy px-4 py-2.5 font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-60"
         >
           {isPending ? (uploadStatus ?? "Saving…") : "Save inspection"}

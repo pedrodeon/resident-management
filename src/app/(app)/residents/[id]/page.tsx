@@ -189,8 +189,9 @@ export default async function ResidentPage({
       </dl>
 
       {/* Occupancy — the per-resident check-in / check-out action, driven by
-          this resident's status. Room-level work (room checks, periodic
-          inspections) stays on the room screen. */}
+          this resident's status. It also owns the move-in / move-out
+          inspections, since each brackets one resident's stay; weekly room
+          checks stay on the room screen. */}
       <div className="mt-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
           Occupancy

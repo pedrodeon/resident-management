@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BackLink } from "@/components/back-link";
 import { InspectionForm } from "@/components/inspection-form";
-import type { InspectionType, InventoryItem } from "@/lib/types";
+import type { CreatableInspectionType, InventoryItem } from "@/lib/types";
 
 type RoomRow = {
   id: string;
@@ -12,7 +12,8 @@ type RoomRow = {
   residents: { id: string; full_name: string }[];
 };
 
-const VALID_TYPES: InspectionType[] = ["move_in", "move_out", "periodic"];
+// Periodic is no longer creatable — routine weekly checks are room_checks.
+const VALID_TYPES: CreatableInspectionType[] = ["move_in", "move_out"];
 
 export default async function NewInspectionPage({
   params,
@@ -45,10 +46,12 @@ export default async function NewInspectionPage({
 
   if (error || !room || !room.hallways) notFound();
 
-  const defaultType: InspectionType =
-    type && VALID_TYPES.includes(type as InspectionType)
-      ? (type as InspectionType)
-      : "periodic";
+  // Every real entry point passes an explicit type; a missing or stale one
+  // (e.g. an old ?type=periodic link) falls back to move-in.
+  const defaultType: CreatableInspectionType =
+    type && VALID_TYPES.includes(type as CreatableInspectionType)
+      ? (type as CreatableInspectionType)
+      : "move_in";
 
   // Preselect a resident when the desk sent us here — only if the id really
   // belongs to this room.

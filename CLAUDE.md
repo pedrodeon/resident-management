@@ -216,9 +216,13 @@ migration.
 ### inspections (a dated condition SNAPSHOT of one room)
 - `id` (uuid, pk)
 - `room_id` (uuid, fk → rooms)
-- `resident_id` (uuid, fk → residents, nullable) — set for move-in/move-out
-  inspections tied to a specific resident
-- `type` (enum: `move_in` | `move_out` | `periodic`)
+- `resident_id` (uuid, fk → residents, nullable) — every inspection created
+  now names a resident; nullable only because legacy `periodic` rows predate
+  that rule
+- `type` (enum: `move_in` | `move_out` | `periodic`) — **`periodic` is legacy:
+  retained in the enum so existing records stay intact and keep rendering, but
+  it is no longer offered anywhere in the UI. New inspections are move-in or
+  move-out only.**
 - `timestamp` (timestamptz, default now())
 - `inspected_by` (uuid, fk → users)
 - `notes` (text, nullable)
@@ -272,6 +276,12 @@ room_change_events).
 
 Creating a `move_in` inspection should be part of the check-in flow, and a
 `move_out` inspection part of the check-out flow.
+
+**The full 12-item inspection happens only at move-in and move-out** — those
+two snapshots are the whole point, since damage is the diff between them.
+Routine weekly condition monitoring is NOT an inspection: that is
+`room_checks` (four 1–5 ratings, notes, prohibited items), which is per room
+and much lighter. Don't add a third inspection type for it.
 
 ### room_checks (weekly RA condition ratings — added post-v1)
 - `id` (uuid, pk)
@@ -348,14 +358,17 @@ column-level policies. Not worth the complexity in v1.
    numbers**, room capacity, and a link to the room's inspection history.
    Each resident row taps through to their own screen, where that resident's
    check-in / check-out lives (post-v1) — occupancy is per resident, never a
-   room-level action. Room-level actions here are the **Room check** button
-   (weekly RA ratings, with history) and the **Periodic inspection** button;
-   move_in/move_out inspections are launched from the resident's screen.
+   room-level action. The only room-level action is the **Room check** button
+   (weekly RA ratings, with history). Inspections appear here as **history +
+   side-by-side compare only** — there is no create button, because both
+   inspection types belong to a resident and are started from their screen.
 
-5. **Inspection sheet** — create a new inspection for a room: all 12 template
-   items, each with a condition (good/fair/damaged/missing) and a note. View past
-   inspections read-only. Support a side-by-side compare of two inspections
-   (typically move-in vs. move-out) with differences highlighted.
+5. **Inspection sheet** — create a new inspection: all 12 template items, each
+   with a condition (good/fair/damaged/missing) and a note. Type is **move-in
+   or move-out only**, and always tied to one resident. View past inspections
+   read-only (including legacy `periodic` ones). Support a side-by-side compare
+   of two inspections (typically move-in vs. move-out) with differences
+   highlighted.
 
 6. **Move-in / move-out** — the semester occupancy flow, reachable from the desk.
    Search ANY resident building-wide by name or student ID, see status, record

@@ -8,7 +8,12 @@ export type Wing = "holiday" | "lebanon";
 export type OccupancyStatus = "expected" | "checked_in" | "checked_out";
 export type OccupancyEventType = "check_in" | "check_out";
 export type PresenceStatus = "away" | "returned";
+/** Mirrors the DB enum. `periodic` is legacy: existing records still render, but
+ * new ones are never created — routine weekly checks are room_checks now. */
 export type InspectionType = "move_in" | "move_out" | "periodic";
+
+/** The types a new inspection may be created as. Both are resident-bound. */
+export type CreatableInspectionType = Exclude<InspectionType, "periodic">;
 export type ItemCondition = "good" | "fair" | "damaged" | "missing";
 
 export type StaffUser = {

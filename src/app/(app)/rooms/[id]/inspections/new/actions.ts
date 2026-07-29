@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { InspectionType, ItemCondition } from "@/lib/types";
+import type { CreatableInspectionType, ItemCondition } from "@/lib/types";
 
 export type InspectionItemInput = {
   item_id: string;
@@ -16,7 +16,8 @@ export type InspectionItemInput = {
 export type CreateInspectionInput = {
   roomId: string;
   residentId: string | null;
-  type: InspectionType;
+  /** Move-in or move-out only — periodic inspections are no longer created. */
+  type: CreatableInspectionType;
   notes: string;
   items: InspectionItemInput[];
 };
