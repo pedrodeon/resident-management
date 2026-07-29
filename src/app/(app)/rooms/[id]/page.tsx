@@ -120,26 +120,45 @@ export default async function RoomPage({
         <p className="mt-2 text-sm text-gray-500">This room is empty.</p>
       ) : (
         <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+          {/* Whole row is the tap target — check-in/out lives on the
+              resident's own screen. */}
           {room.residents.map((resident) => (
-            <li
-              key={resident.id}
-              className="flex items-center justify-between gap-3 px-4 py-3"
-            >
-              <div>
-                <Link
-                  href={`/residents/${resident.id}`}
-                  className="text-sm font-medium hover:text-navy hover:underline"
-                >
-                  {resident.full_name}
-                </Link>
-                <p className="mt-0.5 font-mono text-xs text-gray-500">
-                  {resident.student_id}
-                </p>
-              </div>
-              <StatusChip
-                status={resident.occupancy_status}
-                isPresent={resident.is_present}
-              />
+            <li key={resident.id}>
+              <Link
+                href={`/residents/${resident.id}`}
+                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50"
+              >
+                <div>
+                  <p className="text-sm font-medium text-ink">
+                    {resident.full_name}
+                  </p>
+                  <p className="mt-0.5 font-mono text-xs text-gray-500">
+                    {resident.student_id}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <StatusChip
+                    status={resident.occupancy_status}
+                    isPresent={resident.is_present}
+                  />
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                    className="flex-none text-gray-400"
+                  >
+                    <path
+                      d="M10 6l6 6-6 6"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+              </Link>
             </li>
           ))}
         </ul>

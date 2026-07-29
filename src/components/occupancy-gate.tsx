@@ -1,0 +1,170 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { recordOccupancy } from "@/app/(app)/desk/actions";
+import type { GateProgress, OccupancyFlow } from "@/lib/occupancy-gate";
+import type { OccupancyStatus } from "@/lib/types";
+
+export type GateResident = {
+  id: string;
+  full_name: string;
+  room_id: string;
+  hallway_id: string | null;
+};
+
+const FLOW = {
+  move_in: {
+    intent: "Check-in",
+    inlineStart: "Move-in inspection",
+    inlineDone: "Check in",
+    inspectionStep: "move-in inspection",
+    event: "check_in" as const,
+    nextStatus: "checked_in" as OccupancyStatus,
+  },
+  move_out: {
+    intent: "Check-out",
+    inlineStart: "Move-out inspection",
+    inlineDone: "Check out",
+    inspectionStep: "move-out inspection",
+    event: "check_out" as const,
+    nextStatus: "checked_out" as OccupancyStatus,
+  },
+};
+
+/**
+ * The occupancy ladder: where a resident stands in the signed-inspection flow
+ * decides what this control offers — start the inspection, finish the
+ * signatures, or record the occupancy event. The record_occupancy RPC enforces
+ * the same rules server-side, so this is presentation, not the boundary.
+ *
+ * `variant="inline"` is the desk's compact chip ladder (labels name the next
+ * step). `variant="primary"` is the resident screen's single status-driven
+ * action (label names the intent — Check-in / Check-out — with a hint below
+ * showing which step the flow is actually on).
+ */
+export function OccupancyGate({
+  resident,
+  flow,
+  progress,
+  variant,
+  onOptimistic,
+}: {
+  resident: GateResident;
+  flow: OccupancyFlow;
+  progress: GateProgress | null;
+  variant: "inline" | "primary";
+  /** Lets a parent apply an optimistic status change in the same transition. */
+  onOptimistic?: (residentId: string, status: OccupancyStatus) => void;
+}) {
+  const router = useRouter();
+  const copy = FLOW[flow];
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const gateMet = (progress?.signatures ?? 0) >= 2;
+  const inspectionHref = `/rooms/${resident.room_id}/inspections/new?type=${flow}&resident=${resident.id}`;
+  const reviewHref = progress ? `/inspections/${progress.inspectionId}` : null;
+
+  function finalize() {
+    setError(null);
+    startTransition(async () => {
+      onOptimistic?.(resident.id, copy.nextStatus);
+      const result = await recordOccupancy(
+        resident.id,
+        copy.event,
+        resident.hallway_id,
+      );
+      if (!result.ok) setError(result.error);
+      else router.refresh();
+    });
+  }
+
+  // ---- Desk: compact chips naming the next step (visually unchanged) -------
+  if (variant === "inline") {
+    if (!progress) {
+      return (
+        <Link
+          href={inspectionHref}
+          className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark"
+        >
+          {copy.inlineStart}
+        </Link>
+      );
+    }
+    if (!gateMet) {
+      return (
+        <Link
+          href={reviewHref!}
+          className="rounded-md border-l-4 border-accent bg-accent-soft px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-accent"
+        >
+          Signatures ({progress.signatures}/2)
+        </Link>
+      );
+    }
+    return (
+      <button
+        type="button"
+        onClick={finalize}
+        disabled={isPending}
+        className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
+      >
+        {copy.inlineDone}
+      </button>
+    );
+  }
+
+  // ---- Resident screen: one action named by intent, with a step hint -------
+  const primaryClass =
+    "inline-block rounded-md bg-navy px-4 py-2.5 font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50";
+
+  return (
+    <div>
+      {error && (
+        <p
+          role="alert"
+          className="mb-2 rounded-md border-l-4 border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800"
+        >
+          {error}
+        </p>
+      )}
+
+      {!progress ? (
+        <>
+          <Link href={inspectionHref} className={primaryClass}>
+            {copy.intent}
+          </Link>
+          <p className="mt-2 text-xs text-gray-500">
+            Step 1 of 2 — record the {copy.inspectionStep}.
+          </p>
+        </>
+      ) : !gateMet ? (
+        <>
+          <Link href={reviewHref!} className={primaryClass}>
+            {copy.intent}
+          </Link>
+          <p className="mt-2">
+            <span className="rounded-md border-l-4 border-accent bg-accent-soft px-2.5 py-1 text-xs font-medium text-ink">
+              Step 2 of 2 — awaiting signatures ({progress.signatures}/2)
+            </span>
+          </p>
+        </>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={finalize}
+            disabled={isPending}
+            className={primaryClass}
+          >
+            {isPending ? "Recording…" : copy.intent}
+          </button>
+          <p className="mt-2 text-xs text-gray-500">
+            Inspection signed — ready to finalize.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}

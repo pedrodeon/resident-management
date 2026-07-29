@@ -4,7 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getStaffContext } from "@/lib/auth";
 import { BackLink } from "@/components/back-link";
 import { StatusChip } from "@/components/status-chip";
+import { OccupancyGate } from "@/components/occupancy-gate";
 import { ReassignRoom, type RoomOption } from "@/components/reassign-room";
+import { gateProgress, type GateInspection } from "@/lib/occupancy-gate";
 import type { OccupancyStatus } from "@/lib/types";
 
 type ResidentDetail = {
@@ -17,6 +19,7 @@ type ResidentDetail = {
   is_present: boolean;
   room_id: string;
   rooms: { id: string; room_number: string; hallways: { id: string; name: string } | null } | null;
+  inspections: GateInspection[];
 };
 
 type OccupancyRow = {
@@ -68,7 +71,9 @@ export default async function ResidentPage({
       .select(
         `id, full_name, student_id, phone, emergency_contact,
          occupancy_status, is_present, room_id,
-         rooms ( id, room_number, hallways ( id, name ) )`,
+         rooms ( id, room_number, hallways ( id, name ) ),
+         inspections ( id, type, inspection_signatures ( role ),
+                       inspection_signature_waivers ( id ) )`,
       )
       .eq("id", id)
       .single()
@@ -108,6 +113,21 @@ export default async function ResidentPage({
   if (error || !resident || !resident.rooms) notFound();
 
   const room = resident.rooms;
+
+  // For the occupancy action and the completed state.
+  const gateResident = {
+    id: resident.id,
+    full_name: resident.full_name,
+    room_id: resident.room_id,
+    hallway_id: room.hallways?.id ?? null,
+  };
+  const lastCheckOut = (occupancy ?? []).find((e) => e.type === "check_out")
+    ?.timestamp;
+  const moveOutInspectionId = gateProgress(
+    resident.inspections,
+    "move_out",
+  )?.inspectionId;
+
   const roomOptions: RoomOption[] = (
     (rooms as { id: string; room_number: string; hallways: { name: string } | null }[] | null) ?? []
   ).map((r) => ({
@@ -167,6 +187,53 @@ export default async function ResidentPage({
           <dd>{resident.emergency_contact ?? "—"}</dd>
         </div>
       </dl>
+
+      {/* Occupancy — the per-resident check-in / check-out action, driven by
+          this resident's status. Room-level work (room checks, periodic
+          inspections) stays on the room screen. */}
+      <div className="mt-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+          Occupancy
+        </h2>
+        <div className="mt-2 rounded-lg border border-gray-200 bg-white p-4">
+          {resident.occupancy_status === "expected" && (
+            <OccupancyGate
+              variant="primary"
+              flow="move_in"
+              progress={gateProgress(resident.inspections, "move_in")}
+              resident={gateResident}
+            />
+          )}
+          {resident.occupancy_status === "checked_in" && (
+            <OccupancyGate
+              variant="primary"
+              flow="move_out"
+              progress={gateProgress(resident.inspections, "move_out")}
+              resident={gateResident}
+            />
+          )}
+          {resident.occupancy_status === "checked_out" && (
+            <div className="text-sm">
+              <p className="font-medium text-gray-700">
+                Checked out
+                {lastCheckOut ? ` ${fmt(lastCheckOut)}` : ""}.
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                This resident&rsquo;s stay is complete. Re-admitting them is a
+                roster change, not a check-in.
+              </p>
+              {moveOutInspectionId && (
+                <Link
+                  href={`/inspections/${moveOutInspectionId}`}
+                  className="mt-2 inline-block text-xs font-medium text-navy hover:underline"
+                >
+                  View move-out inspection →
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
       {isRd && (
         <div className="mt-4">

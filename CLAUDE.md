@@ -346,8 +346,11 @@ column-level policies. Not worth the complexity in v1.
 
 4. **Room detail** — the residents living in that room with their **student ID
    numbers**, room capacity, and a link to the room's inspection history.
-   Room reassignment controls appear here for the RD only. Also hosts the
-   **Room check** button and the room's check history (weekly RA ratings).
+   Each resident row taps through to their own screen, where that resident's
+   check-in / check-out lives (post-v1) — occupancy is per resident, never a
+   room-level action. Room-level actions here are the **Room check** button
+   (weekly RA ratings, with history) and the **Periodic inspection** button;
+   move_in/move_out inspections are launched from the resident's screen.
 
 5. **Inspection sheet** — create a new inspection for a room: all 12 template
    items, each with a condition (good/fair/damaged/missing) and a note. View past
@@ -365,7 +368,12 @@ column-level policies. Not worth the complexity in v1.
    a reason → finalize check-out.
 
 7. **Resident detail** — full record (room, student ID, contacts), plus occupancy
-   history, presence history, and room-change history.
+   history, presence history, and room-change history. Hosts that resident's
+   **occupancy action**, driven by their status: `expected` → "Check-in",
+   `checked_in` → "Check-out", `checked_out` → a completed state with no
+   action (the lifecycle is one-way). The action walks the gated flow —
+   inspection → signatures → record the event — the same ladder the desk
+   uses, shared via `OccupancyGate` / `gateProgress`.
 
 8. **Admin (RD only)** — add/edit residents, manage rooms, invite/remove RAs,
    assign RAs to hallways, edit the inventory item template.

@@ -42,11 +42,14 @@ export function InspectionHistory({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
           Inspections
         </h2>
+        {/* Room-level entry point is the periodic inspection; move-in and
+            move-out inspections are launched from a resident's own screen,
+            where they gate that resident's check-in / check-out. */}
         <Link
-          href={`/rooms/${roomId}/inspections/new`}
+          href={`/rooms/${roomId}/inspections/new?type=periodic`}
           className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark"
         >
-          New inspection
+          Periodic inspection
         </Link>
       </div>
 

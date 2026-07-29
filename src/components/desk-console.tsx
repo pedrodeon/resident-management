@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useOptimistic, useState, useTransition } from "react";
+import { useCallback, useOptimistic, useState } from "react";
 import Link from "next/link";
 import { StatusChip } from "@/components/status-chip";
-import { recordOccupancy } from "@/app/(app)/desk/actions";
+import { OccupancyGate } from "@/components/occupancy-gate";
+import type { GateProgress } from "@/lib/occupancy-gate";
 import type { OccupancyStatus } from "@/lib/types";
 
 export type DeskResident = {
@@ -16,15 +17,13 @@ export type DeskResident = {
   hallway_name: string;
   occupancy_status: OccupancyStatus;
   /** Best move-in inspection: id + gate halves satisfied (0-2). */
-  move_in: { inspectionId: string; signatures: number } | null;
+  move_in: GateProgress | null;
   /** Best move-out inspection: RA signature + (resident signature or waiver). */
-  move_out: { inspectionId: string; signatures: number } | null;
+  move_out: GateProgress | null;
 };
 
 export function DeskConsole({ residents }: { residents: DeskResident[] }) {
   const [query, setQuery] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
 
   // Optimistic status overlay keyed by resident id.
   const [optimistic, setOptimistic] = useOptimistic(
@@ -38,93 +37,44 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
   const expected = optimistic.filter((r) => r.occupancy_status === "expected");
 
   // Local filter — the search term is resident data, so it never touches the
-  // URL. ~200 rows filter instantly on every keystroke.
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return optimistic.filter(
-      (r) =>
-        r.full_name.toLowerCase().includes(q) ||
-        r.student_id.toLowerCase().includes(q),
-    );
-  }, [query, optimistic]);
+  // URL. ~200 rows filter instantly on every keystroke; the React Compiler
+  // handles memoization (a manual useMemo here only made it skip the whole
+  // component, and its deps change on exactly the renders that recompute).
+  const query_ = query.trim().toLowerCase();
+  const results = query_
+    ? optimistic.filter(
+        (r) =>
+          r.full_name.toLowerCase().includes(query_) ||
+          r.student_id.toLowerCase().includes(query_),
+      )
+    : [];
 
-  function act(resident: DeskResident, type: "check_in" | "check_out") {
-    setError(null);
-    const nextStatus: OccupancyStatus =
-      type === "check_in" ? "checked_in" : "checked_out";
-    startTransition(async () => {
-      setOptimistic({ id: resident.id, status: nextStatus });
-      const result = await recordOccupancy(
-        resident.id,
-        type,
-        resident.hallway_id,
-      );
-      if (!result.ok) setError(result.error);
-    });
-  }
+  // The occupancy ladder itself lives in OccupancyGate, shared with the
+  // resident screen so the two can't drift. The desk hands it the optimistic
+  // setter so a recorded resident leaves the expected panel immediately —
+  // move-in day runs ~200 of these.
+  const applyOptimistic = useCallback(
+    (id: string, status: OccupancyStatus) => setOptimistic({ id, status }),
+    [setOptimistic],
+  );
 
-  // The occupancy gates: where a resident is in the signed-inspection flow
-  // decides what the desk offers — inspection, signatures, or the final
-  // check-in/out. The record_occupancy RPC enforces the same rules
-  // server-side, so this is presentation, not the boundary.
-  function GateControl({
-    resident,
-    flow,
-  }: {
-    resident: DeskResident;
-    flow: "move_in" | "move_out";
-  }) {
-    const progress = flow === "move_in" ? resident.move_in : resident.move_out;
-    const labels =
-      flow === "move_in"
-        ? { start: "Move-in inspection", done: "Check in" }
-        : { start: "Move-out inspection", done: "Check out" };
-
-    if (!progress) {
-      return (
-        <Link
-          href={`/rooms/${resident.room_id}/inspections/new?type=${flow}&resident=${resident.id}`}
-          className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark"
-        >
-          {labels.start}
-        </Link>
-      );
-    }
-    if (progress.signatures < 2) {
-      return (
-        <Link
-          href={`/inspections/${progress.inspectionId}`}
-          className="rounded-md border-l-4 border-accent bg-accent-soft px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-accent"
-        >
-          Signatures ({progress.signatures}/2)
-        </Link>
-      );
-    }
-    return (
-      <button
-        type="button"
-        onClick={() =>
-          act(resident, flow === "move_in" ? "check_in" : "check_out")
-        }
-        disabled={isPending}
-        className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
-      >
-        {labels.done}
-      </button>
-    );
-  }
+  const gate = (resident: DeskResident, flow: "move_in" | "move_out") => (
+    <OccupancyGate
+      variant="inline"
+      flow={flow}
+      progress={flow === "move_in" ? resident.move_in : resident.move_out}
+      resident={{
+        id: resident.id,
+        full_name: resident.full_name,
+        room_id: resident.room_id,
+        hallway_id: resident.hallway_id,
+      }}
+      onOptimistic={applyOptimistic}
+    />
+  );
 
   return (
     <div className="flex flex-col gap-8">
-      {error && (
-        <p
-          role="alert"
-          className="rounded-md border-l-4 border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800"
-        >
-          {error}
-        </p>
-      )}
 
       {/* Expected panel — the move-in-day chase list. */}
       <section>
@@ -151,7 +101,7 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
                     {resident.hallway_name} · Room {resident.room_number}
                   </p>
                 </div>
-                <GateControl resident={resident} flow="move_in" />
+                {gate(resident, "move_in")}
               </li>
             ))}
           </ul>
@@ -212,12 +162,10 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
                     status={resident.occupancy_status}
                     isPresent={true}
                   />
-                  {resident.occupancy_status === "expected" && (
-                    <GateControl resident={resident} flow="move_in" />
-                  )}
-                  {resident.occupancy_status === "checked_in" && (
-                    <GateControl resident={resident} flow="move_out" />
-                  )}
+                  {resident.occupancy_status === "expected" &&
+                    gate(resident, "move_in")}
+                  {resident.occupancy_status === "checked_in" &&
+                    gate(resident, "move_out")}
                 </div>
               </li>
             ))}
