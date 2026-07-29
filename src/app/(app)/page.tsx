@@ -100,13 +100,16 @@ export default async function Dashboard() {
         </p>
       </div>
 
-      {/* Quick actions — real routes only (the /desk move-in/out flow) */}
-      <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+      {/* Quick actions — real routes only */}
+      <div className="grid grid-cols-3 gap-3 sm:max-w-lg">
         <ActionTile href="/desk" label="Check in">
           <CheckIcon />
         </ActionTile>
         <ActionTile href="/desk" label="Sign out">
           <SwapIcon />
+        </ActionTile>
+        <ActionTile href="/room-checks" label="Room checks">
+          <ChecklistIcon />
         </ActionTile>
       </div>
 
@@ -215,6 +218,19 @@ function SwapIcon() {
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ChecklistIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 6h1.5M4 12h1.5M4 18h1.5M9 6h11M9 12h11M9 18h11"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
       />
     </svg>
   );
