@@ -34,9 +34,9 @@ after(async () => {
   await restoreResident(PETIT, { occupancy_status: "expected", is_present: true });
 });
 
-// Check-in is gated on a fully-signed move-in inspection; build one for a
-// resident so the lifecycle tests can proceed past the gate.
-async function createSignedMoveIn(client, userId, residentId, roomId) {
+// Check-in and check-out are each gated on a fully-signed inspection of the
+// matching type; build one so the lifecycle tests can proceed past the gates.
+async function createSignedInspection(client, userId, residentId, roomId, type) {
   const { data: item } = await adminClient()
     .from("inventory_items")
     .select("id")
@@ -46,8 +46,8 @@ async function createSignedMoveIn(client, userId, residentId, roomId) {
   const { data: inspectionId, error } = await client.rpc("create_inspection", {
     target_room: roomId,
     target_resident: residentId,
-    inspection_type: "move_in",
-    inspection_notes: "suite: signed move-in",
+    inspection_type: type,
+    inspection_notes: `suite: signed ${type}`,
     items: [{ item_id: item.id, condition: "good", note: null }],
   });
   if (error) throw new Error(`setup inspection failed: ${error.message}`);
@@ -98,7 +98,7 @@ describe("record_occupancy", () => {
   });
 
   test("an RA can check in an expected resident once both have signed", async () => {
-    await createSignedMoveIn(ra, raId, petit.id, petit.room_id);
+    await createSignedInspection(ra, raId, petit.id, petit.room_id, "move_in");
     const before = await eventCount("occupancy_events", petit.id);
 
     const { error } = await ra.rpc("record_occupancy", {
@@ -139,7 +139,17 @@ describe("record_occupancy", () => {
     assert.ok(error, "a second check-in succeeded");
   });
 
-  test("an RA can check out a checked-in resident", async () => {
+  test("check_out is rejected while the move-out inspection is unsigned", async () => {
+    const { error } = await ra.rpc("record_occupancy", {
+      target_resident: petit.id,
+      event_type: "check_out",
+    });
+    assert.ok(error, "checked out without a signed move-out inspection");
+    assert.match(error.message, /move-out inspection/i);
+  });
+
+  test("an RA can check out a checked-in resident once the move-out is signed", async () => {
+    await createSignedInspection(ra, raId, petit.id, petit.room_id, "move_out");
     const { error } = await ra.rpc("record_occupancy", {
       target_resident: petit.id,
       event_type: "check_out",

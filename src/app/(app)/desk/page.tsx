@@ -17,6 +17,7 @@ type ResidentRow = {
     id: string;
     type: string;
     inspection_signatures: { role: string }[];
+    inspection_signature_waivers: { id: string } | null;
   }[];
 };
 
@@ -29,7 +30,8 @@ export default async function DeskPage() {
     .select(
       `id, full_name, student_id, room_id, occupancy_status,
        rooms ( room_number, hallways ( id, name ) ),
-       inspections ( id, type, inspection_signatures ( role ) )`,
+       inspections ( id, type, inspection_signatures ( role ),
+                     inspection_signature_waivers ( id ) )`,
     )
     .order("full_name")
     .overrideTypes<ResidentRow[]>();
@@ -37,15 +39,24 @@ export default async function DeskPage() {
   const residents: DeskResident[] = (data ?? [])
     .filter((r) => r.rooms?.hallways)
     .map((r) => {
-      // Check-in readiness: the move-in inspection with the most distinct
-      // signature roles (the RPC enforces the same both-signatures rule).
-      const moveIns = r.inspections
-        .filter((i) => i.type === "move_in")
-        .map((i) => ({
-          inspectionId: i.id,
-          signatures: new Set(i.inspection_signatures.map((s) => s.role)).size,
-        }))
-        .sort((a, b) => b.signatures - a.signatures);
+      // Gate progress per flow, as "halves satisfied" out of 2. Move-in: the
+      // two signature roles. Move-out: the RA signature, plus the resident
+      // signature OR a recorded waiver. The record_occupancy RPC enforces the
+      // same rules server-side.
+      const best = (type: "move_in" | "move_out") =>
+        r.inspections
+          .filter((i) => i.type === type)
+          .map((i) => {
+            const roles = new Set(i.inspection_signatures.map((s) => s.role));
+            const residentHalf =
+              roles.has("resident") ||
+              (type === "move_out" && i.inspection_signature_waivers !== null);
+            return {
+              inspectionId: i.id,
+              signatures: (roles.has("ra") ? 1 : 0) + (residentHalf ? 1 : 0),
+            };
+          })
+          .sort((a, b) => b.signatures - a.signatures)[0] ?? null;
       return {
         id: r.id,
         full_name: r.full_name,
@@ -55,7 +66,8 @@ export default async function DeskPage() {
         hallway_id: r.rooms!.hallways!.id,
         hallway_name: r.rooms!.hallways!.name,
         occupancy_status: r.occupancy_status,
-        move_in: moveIns[0] ?? null,
+        move_in: best("move_in"),
+        move_out: best("move_out"),
       };
     });
 

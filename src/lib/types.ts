@@ -124,6 +124,15 @@ export type InspectionSignature = {
   captured_by: string;
 };
 
+/** "Resident unavailable / declined to sign" on a move-out inspection. */
+export type SignatureWaiver = {
+  id: string;
+  inspection_id: string;
+  reason: string;
+  waived_by: string;
+  created_at: string;
+};
+
 export type InspectionPhoto = {
   id: string;
   inspection_id: string;

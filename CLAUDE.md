@@ -239,10 +239,26 @@ migration.
 - `captured_by` (uuid, fk → users) — RLS pins this to the caller
 
 The resident signs "I agree the recorded conditions are accurate"; the RA
-signs "I confirm I conducted this inspection." Immutable once captured (no
-update/delete for any role; the unique key blocks re-signing). **A check-in
-cannot be finalized until both exist** — record_occupancy refuses `check_in`
-without a fully-signed move_in inspection, so the gate holds at the database.
+signs "I confirm I conducted this inspection." Applies to `move_in` and
+`move_out` inspections. Immutable once captured (no update/delete for any
+role; the unique key blocks re-signing). **A check-in cannot be finalized
+until both exist** — record_occupancy refuses `check_in` without a
+fully-signed move_in inspection, so the gate holds at the database.
+**Check-out is gated the same way**, except the resident half may instead be
+satisfied by a waiver (below); the RA signature is never waivable.
+
+### inspection_signature_waivers (move-out escape hatch — added post-v1)
+- `id` (uuid, pk)
+- `inspection_id` (uuid, fk → inspections, unique) — one waiver max
+- `reason` (text, required non-blank)
+- `waived_by` (uuid, fk → users) — RLS pins this to the caller
+- `created_at` (timestamptz, default now())
+
+Residents leave early or refuse to sign at move-out, so the RA can record
+"resident unavailable / declined to sign" **with a required reason**. It
+satisfies the resident half of the check-out gate while making the missing
+signature explicit and permanent. Move-out only (at move-in the resident is
+present by definition); immutable like the signatures it stands in for.
 
 ### Why inspections are snapshots, not one editable sheet per room
 
@@ -344,8 +360,9 @@ column-level policies. Not worth the complexity in v1.
    Prominently shows **who is still `expected`** so the RD can chase no-shows.
    Check-in order (post-v1): move_in inspection first → resident + RA sign on
    the inspection review → only then can the check-in be finalized (enforced
-   by record_occupancy). Move-out keeps the original order: check out, then
-   the paired inspection is offered.
+   by record_occupancy). Check-out mirrors it: move_out inspection → RA signs
+   and the resident signs **or** the RA records "unavailable / declined" with
+   a reason → finalize check-out.
 
 7. **Resident detail** — full record (room, student ID, contacts), plus occupancy
    history, presence history, and room-change history.

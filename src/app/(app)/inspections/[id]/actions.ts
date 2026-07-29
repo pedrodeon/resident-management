@@ -42,3 +42,43 @@ export async function addInspectionSignature(
   revalidatePath("/desk");
   return { ok: true };
 }
+
+/**
+ * Record "resident unavailable / declined to sign" against a move-out
+ * inspection, with the required reason. Satisfies the resident half of the
+ * check-out gate while making the missing signature explicit and permanent.
+ * RLS enforces: staff only, waived_by = caller, move-out inspections only,
+ * one waiver per inspection.
+ */
+export async function waiveResidentSignature(
+  inspectionId: string,
+  reason: string,
+): Promise<SignatureResult> {
+  const trimmed = reason.trim();
+  if (!trimmed) {
+    return { ok: false, error: "A reason is required to record the waiver." };
+  }
+
+  const staff = await getStaffContext();
+  if (!staff) return { ok: false, error: "Not signed in as staff." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("inspection_signature_waivers").insert({
+    inspection_id: inspectionId,
+    reason: trimmed,
+    waived_by: staff.id,
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      error: error.message.includes("duplicate")
+        ? "A waiver has already been recorded for this inspection."
+        : error.message,
+    };
+  }
+
+  revalidatePath(`/inspections/${inspectionId}`);
+  revalidatePath("/desk");
+  return { ok: true };
+}

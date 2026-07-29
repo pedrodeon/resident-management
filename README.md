@@ -19,7 +19,10 @@ See [CLAUDE.md](CLAUDE.md) for the full product spec and data model.
 - **Move-in / move-out** (`/desk`) — search any resident, record check-in or
   check-out, and see who has not arrived yet. Check-in is gated on a move-in
   inspection **signed by both the resident and the RA** (finger-drawn on
-  screen, stored immutably against that exact inspection).
+  screen, stored immutably against that exact inspection). Check-out is gated
+  the same way, with one documented exception: if the resident is unavailable
+  or declines, the RA records why and the check-out completes on the RA's
+  signature alone — the missing signature stays on the record.
 - **Inspections** — a 12-item template captured as immutable dated snapshots;
   damage is the diff between two of them. Items can carry **photos** (camera
   capture on phones), stored in a private bucket, immutable like the snapshot,

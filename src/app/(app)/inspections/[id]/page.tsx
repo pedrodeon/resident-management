@@ -7,6 +7,7 @@ import { ConditionChip } from "@/components/condition-chip";
 import {
   InspectionSignatures,
   type StoredSignature,
+  type StoredWaiver,
 } from "@/components/inspection-signatures";
 import { PHOTO_BUCKET } from "@/lib/photos";
 import type { InspectionType, ItemCondition, SignatureRole } from "@/lib/types";
@@ -24,6 +25,11 @@ type InspectionDetail = {
     storage_path: string;
     signed_at: string;
   }[];
+  inspection_signature_waivers: {
+    reason: string;
+    created_at: string;
+    users: { name: string } | null;
+  } | null;
   inspection_items: {
     id: string;
     condition: ItemCondition;
@@ -54,6 +60,7 @@ export default async function InspectionPage({
        residents ( id, full_name, occupancy_status ),
        users:inspected_by ( name ),
        inspection_signatures ( role, storage_path, signed_at ),
+       inspection_signature_waivers ( reason, created_at, users:waived_by ( name ) ),
        inspection_items ( id, condition, note,
                           inventory_items ( name, sort_order ),
                           inspection_photos ( id, storage_path ) )`,
@@ -64,9 +71,17 @@ export default async function InspectionPage({
 
   if (error || !inspection || !inspection.rooms) notFound();
 
-  // The attestation step applies to move-in inspections tied to a resident.
-  const signable = inspection.type === "move_in" && inspection.residents !== null;
+  // The attestation step applies to move-in and move-out inspections tied to
+  // a resident. The gate: RA signature AND (resident signature OR, for
+  // move-out only, a recorded waiver).
+  const signable =
+    (inspection.type === "move_in" || inspection.type === "move_out") &&
+    inspection.residents !== null;
   const staff = signable ? await getStaffContext() : null;
+  const waiverRow = inspection.inspection_signature_waivers;
+  const roles = new Set(inspection.inspection_signatures.map((s) => s.role));
+  const gateSatisfied =
+    roles.has("ra") && (roles.has("resident") || waiverRow !== null);
 
   const items = [...inspection.inspection_items].sort(
     (a, b) =>
@@ -131,7 +146,7 @@ export default async function InspectionPage({
           {TYPE_LABEL[inspection.type]} inspection
         </h1>
         <span className="text-sm text-gray-500">{date}</span>
-        {signable && inspection.inspection_signatures.length < 2 && (
+        {signable && !gateSatisfied && (
           <span className="rounded-full border-l-4 border-accent bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-ink">
             awaiting signatures
           </span>
@@ -194,9 +209,10 @@ export default async function InspectionPage({
       </ul>
 
       {/* Attestations: resident + RA sign against this exact snapshot; the
-          check-in cannot be finalized until both exist. */}
+          check-in / check-out cannot be finalized until the gate is met. */}
       {signable && inspection.residents && (
         <InspectionSignatures
+          mode={inspection.type as "move_in" | "move_out"}
           inspectionId={inspection.id}
           residentId={inspection.residents.id}
           residentName={inspection.residents.full_name}
@@ -211,6 +227,15 @@ export default async function InspectionPage({
                 : [];
             },
           )}
+          waiver={
+            waiverRow
+              ? ({
+                  reason: waiverRow.reason,
+                  waivedByName: waiverRow.users?.name ?? "staff",
+                  created_at: waiverRow.created_at,
+                } satisfies StoredWaiver)
+              : null
+          }
         />
       )}
     </section>

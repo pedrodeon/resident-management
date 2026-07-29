@@ -15,21 +15,15 @@ export type DeskResident = {
   hallway_id: string;
   hallway_name: string;
   occupancy_status: OccupancyStatus;
-  /** Best move-in inspection: id + how many of the two signatures exist. */
+  /** Best move-in inspection: id + gate halves satisfied (0-2). */
   move_in: { inspectionId: string; signatures: number } | null;
-};
-
-// After a check-out, prompt the paired move-out inspection. (Move-in is the
-// other way around now: the signed inspection comes FIRST and gates check-in.)
-type JustActed = {
-  residentName: string;
-  roomId: string;
+  /** Best move-out inspection: RA signature + (resident signature or waiver). */
+  move_out: { inspectionId: string; signatures: number } | null;
 };
 
 export function DeskConsole({ residents }: { residents: DeskResident[] }) {
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [justActed, setJustActed] = useState<JustActed | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // Optimistic status overlay keyed by resident id.
@@ -57,7 +51,6 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
 
   function act(resident: DeskResident, type: "check_in" | "check_out") {
     setError(null);
-    setJustActed(null);
     const nextStatus: OccupancyStatus =
       type === "check_in" ? "checked_in" : "checked_out";
     startTransition(async () => {
@@ -67,49 +60,57 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
         type,
         resident.hallway_id,
       );
-      if (!result.ok) {
-        setError(result.error);
-      } else if (type === "check_out") {
-        setJustActed({
-          residentName: resident.full_name,
-          roomId: resident.room_id,
-        });
-      }
+      if (!result.ok) setError(result.error);
     });
   }
 
-  // The move-in gate: where an expected resident is in the signed-inspection
-  // flow decides what the desk offers. The record_occupancy RPC enforces the
-  // same rule server-side, so this is presentation, not the boundary.
-  function CheckInControl({ resident }: { resident: DeskResident }) {
-    if (!resident.move_in) {
+  // The occupancy gates: where a resident is in the signed-inspection flow
+  // decides what the desk offers — inspection, signatures, or the final
+  // check-in/out. The record_occupancy RPC enforces the same rules
+  // server-side, so this is presentation, not the boundary.
+  function GateControl({
+    resident,
+    flow,
+  }: {
+    resident: DeskResident;
+    flow: "move_in" | "move_out";
+  }) {
+    const progress = flow === "move_in" ? resident.move_in : resident.move_out;
+    const labels =
+      flow === "move_in"
+        ? { start: "Move-in inspection", done: "Check in" }
+        : { start: "Move-out inspection", done: "Check out" };
+
+    if (!progress) {
       return (
         <Link
-          href={`/rooms/${resident.room_id}/inspections/new?type=move_in&resident=${resident.id}`}
+          href={`/rooms/${resident.room_id}/inspections/new?type=${flow}&resident=${resident.id}`}
           className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark"
         >
-          Move-in inspection
+          {labels.start}
         </Link>
       );
     }
-    if (resident.move_in.signatures < 2) {
+    if (progress.signatures < 2) {
       return (
         <Link
-          href={`/inspections/${resident.move_in.inspectionId}`}
+          href={`/inspections/${progress.inspectionId}`}
           className="rounded-md border-l-4 border-accent bg-accent-soft px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-accent"
         >
-          Signatures ({resident.move_in.signatures}/2)
+          Signatures ({progress.signatures}/2)
         </Link>
       );
     }
     return (
       <button
         type="button"
-        onClick={() => act(resident, "check_in")}
+        onClick={() =>
+          act(resident, flow === "move_in" ? "check_in" : "check_out")
+        }
         disabled={isPending}
         className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
       >
-        Check in
+        {labels.done}
       </button>
     );
   }
@@ -123,21 +124,6 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
         >
           {error}
         </p>
-      )}
-
-      {justActed && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-navy/20 bg-navy/5 px-3 py-2 text-sm">
-          <span>
-            Checked out <strong>{justActed.residentName}</strong>. Start the
-            paired move-out inspection?
-          </span>
-          <Link
-            href={`/rooms/${justActed.roomId}/inspections/new?type=move_out`}
-            className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark"
-          >
-            Move-out inspection
-          </Link>
-        </div>
       )}
 
       {/* Expected panel — the move-in-day chase list. */}
@@ -165,7 +151,7 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
                     {resident.hallway_name} · Room {resident.room_number}
                   </p>
                 </div>
-                <CheckInControl resident={resident} />
+                <GateControl resident={resident} flow="move_in" />
               </li>
             ))}
           </ul>
@@ -188,8 +174,10 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
 
         {query.trim() === "" ? (
           <p className="mt-2 text-xs text-gray-400">
-            Check-in requires a move-in inspection signed by the resident and
-            the RA; the paired move-out inspection is offered after check-out.
+            Check-in and check-out each require a signed inspection first —
+            move-in needs both signatures; move-out needs the RA&rsquo;s plus
+            the resident&rsquo;s or a recorded &ldquo;unavailable /
+            declined&rdquo; note.
           </p>
         ) : results.length === 0 ? (
           <p className="mt-3 text-sm text-gray-500">No match for “{query}”.</p>
@@ -225,17 +213,10 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
                     isPresent={true}
                   />
                   {resident.occupancy_status === "expected" && (
-                    <CheckInControl resident={resident} />
+                    <GateControl resident={resident} flow="move_in" />
                   )}
                   {resident.occupancy_status === "checked_in" && (
-                    <button
-                      type="button"
-                      onClick={() => act(resident, "check_out")}
-                      disabled={isPending}
-                      className="rounded-md border border-navy px-3 py-1.5 text-xs font-semibold text-navy transition-colors hover:bg-navy hover:text-white disabled:opacity-50"
-                    >
-                      Check out
-                    </button>
+                    <GateControl resident={resident} flow="move_out" />
                   )}
                 </div>
               </li>

@@ -3,7 +3,10 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pad";
-import { addInspectionSignature } from "@/app/(app)/inspections/[id]/actions";
+import {
+  addInspectionSignature,
+  waiveResidentSignature,
+} from "@/app/(app)/inspections/[id]/actions";
 import { recordOccupancy } from "@/app/(app)/desk/actions";
 import { createClient } from "@/lib/supabase/client";
 import { PHOTO_BUCKET } from "@/lib/photos";
@@ -15,14 +18,58 @@ export type StoredSignature = {
   signed_at: string;
 };
 
+export type StoredWaiver = {
+  reason: string;
+  waivedByName: string;
+  created_at: string;
+};
+
+type Mode = "move_in" | "move_out";
+
+// Attestation wording and finalization per inspection type. The resident is
+// present at move-in by definition, so only move-out offers the waiver.
+const MODE_COPY: Record<
+  Mode,
+  {
+    residentAttestation: string;
+    raAttestation: string;
+    finalizeStatus: string; // occupancy_status that can still be finalized
+    finalizeLabel: string;
+    finalizeType: "check_in" | "check_out";
+    doneStatus: string;
+    doneText: string;
+  }
+> = {
+  move_in: {
+    residentAttestation: "I agree the recorded conditions are accurate.",
+    raAttestation: "I confirm I conducted this inspection.",
+    finalizeStatus: "expected",
+    finalizeLabel: "Finalize check-in",
+    finalizeType: "check_in",
+    doneStatus: "checked_in",
+    doneText: "is checked in.",
+  },
+  move_out: {
+    residentAttestation:
+      "I agree the recorded move-out conditions are accurate.",
+    raAttestation: "I confirm I conducted this move-out inspection.",
+    finalizeStatus: "checked_in",
+    finalizeLabel: "Finalize check-out",
+    finalizeType: "check_out",
+    doneStatus: "checked_out",
+    doneText: "is checked out.",
+  },
+};
+
 /**
- * The attestation step on a move-in inspection: the resident agrees the
- * recorded conditions are accurate, the RA confirms they conducted the
- * inspection. Each saves independently and permanently; check-in can only be
- * finalized once both exist (the record_occupancy RPC enforces the same rule
- * server-side).
+ * The attestation step on a move-in or move-out inspection. Each signature
+ * saves independently and permanently; finalization is gated on the RA
+ * signature plus the resident half — the resident's signature, or (move-out
+ * only) a recorded "unavailable / declined to sign" waiver with its reason.
+ * The record_occupancy RPC enforces the same rule server-side.
  */
 export function InspectionSignatures({
+  mode,
   inspectionId,
   residentId,
   residentName,
@@ -30,7 +77,9 @@ export function InspectionSignatures({
   hallwayId,
   residentStatus,
   stored,
+  waiver,
 }: {
+  mode: Mode;
   inspectionId: string;
   residentId: string;
   residentName: string;
@@ -38,14 +87,16 @@ export function InspectionSignatures({
   hallwayId: string | null;
   residentStatus: string;
   stored: StoredSignature[];
+  waiver: StoredWaiver | null;
 }) {
   const router = useRouter();
+  const copy = MODE_COPY[mode];
   const [error, setError] = useState<string | null>(null);
-  const [finalized, setFinalized] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const byRole = (role: SignatureRole) => stored.find((s) => s.role === role);
-  const bothSigned = !!byRole("resident") && !!byRole("ra");
+  const residentHalf = !!byRole("resident") || waiver !== null;
+  const gateSatisfied = !!byRole("ra") && residentHalf;
 
   function save(role: SignatureRole, pad: SignaturePadHandle | null) {
     setError(null);
@@ -55,8 +106,6 @@ export function InspectionSignatures({
         setError("Draw the signature before saving.");
         return;
       }
-      // Upload the PNG to the private bucket (immutable once landed), then
-      // record the row binding it to this exact inspection.
       const supabase = createClient();
       const path = `signatures/${inspectionId}/${role}-${Date.now()}.png`;
       const { error: uploadError } = await supabase.storage
@@ -72,15 +121,25 @@ export function InspectionSignatures({
     });
   }
 
+  function waive(reason: string) {
+    setError(null);
+    startTransition(async () => {
+      const result = await waiveResidentSignature(inspectionId, reason);
+      if (!result.ok) setError(result.error);
+      else router.refresh();
+    });
+  }
+
   function finalize() {
     setError(null);
     startTransition(async () => {
-      const result = await recordOccupancy(residentId, "check_in", hallwayId);
+      const result = await recordOccupancy(
+        residentId,
+        copy.finalizeType,
+        hallwayId,
+      );
       if (!result.ok) setError(result.error);
-      else {
-        setFinalized(true);
-        router.refresh();
-      }
+      else router.refresh();
     });
   }
 
@@ -102,42 +161,51 @@ export function InspectionSignatures({
       <div className="mt-2 grid gap-4 sm:grid-cols-2">
         <SignatureBlock
           title={`Resident signature — ${residentName}`}
-          attestation="I agree the recorded conditions are accurate."
+          attestation={copy.residentAttestation}
           existing={byRole("resident")}
+          waiver={waiver}
+          allowWaiver={mode === "move_out" && !byRole("resident") && !waiver}
           disabled={isPending}
           onSave={(pad) => save("resident", pad)}
+          onWaive={waive}
         />
         <SignatureBlock
           title={`RA signature — ${staffName}`}
-          attestation="I confirm I conducted this inspection."
+          attestation={copy.raAttestation}
           existing={byRole("ra")}
+          waiver={null}
+          allowWaiver={false}
           disabled={isPending}
           onSave={(pad) => save("ra", pad)}
+          onWaive={() => {}}
         />
       </div>
 
-      {/* Finalization: only meaningful while the resident is still expected. */}
-      {residentStatus === "expected" && (
+      {residentStatus === copy.finalizeStatus && (
         <div className="mt-4">
-          {bothSigned ? (
+          {gateSatisfied ? (
             <button
               type="button"
               onClick={finalize}
               disabled={isPending}
               className="rounded-md bg-navy px-4 py-2.5 font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
             >
-              {isPending ? "Finalizing…" : `Finalize check-in for ${residentName}`}
+              {isPending
+                ? "Finalizing…"
+                : `${copy.finalizeLabel} for ${residentName}`}
             </button>
           ) : (
             <p className="rounded-md border-l-4 border-accent bg-accent-soft px-3 py-2 text-sm text-ink">
-              Check-in stays incomplete until both signatures are captured.
+              {mode === "move_in"
+                ? "Check-in stays incomplete until both signatures are captured."
+                : "Check-out stays incomplete until the RA has signed and the resident has either signed or been recorded as unavailable."}
             </p>
           )}
         </div>
       )}
-      {(finalized || residentStatus === "checked_in") && (
+      {residentStatus === copy.doneStatus && (
         <p className="mt-4 text-sm text-gray-600">
-          {residentName} is checked in.
+          {residentName} {copy.doneText}
         </p>
       )}
     </div>
@@ -148,17 +216,25 @@ function SignatureBlock({
   title,
   attestation,
   existing,
+  waiver,
+  allowWaiver,
   disabled,
   onSave,
+  onWaive,
 }: {
   title: string;
   attestation: string;
   existing: StoredSignature | undefined;
+  waiver: StoredWaiver | null;
+  allowWaiver: boolean;
   disabled: boolean;
   onSave: (pad: SignaturePadHandle | null) => void;
+  onWaive: (reason: string) => void;
 }) {
   const padRef = useRef<SignaturePadHandle>(null);
   const [dirty, setDirty] = useState(false);
+  const [waiverOpen, setWaiverOpen] = useState(false);
+  const [waiverReason, setWaiverReason] = useState("");
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -178,6 +254,17 @@ function SignatureBlock({
             Signed {new Date(existing.signed_at).toLocaleString()}
           </p>
         </div>
+      ) : waiver ? (
+        // The documented absence of the resident signature — needs-attention
+        // orange, permanently part of this inspection's record.
+        <div className="mt-3 rounded-md border-l-4 border-accent bg-accent-soft px-3 py-2.5 text-sm text-ink">
+          <p className="font-semibold">Resident signature waived</p>
+          <p className="mt-1 whitespace-pre-wrap">{waiver.reason}</p>
+          <p className="mt-1.5 text-xs">
+            Recorded by {waiver.waivedByName},{" "}
+            {new Date(waiver.created_at).toLocaleString()}
+          </p>
+        </div>
       ) : (
         <div className="mt-3">
           <SignaturePad ref={padRef} onDirtyChange={setDirty} disabled={disabled} />
@@ -189,6 +276,52 @@ function SignatureBlock({
           >
             Save signature
           </button>
+
+          {allowWaiver && (
+            <div className="mt-3 border-t border-gray-100 pt-3">
+              {!waiverOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setWaiverOpen(true)}
+                  className="text-xs font-medium text-gray-500 underline hover:text-navy"
+                >
+                  Resident unavailable or declined to sign?
+                </button>
+              ) : (
+                <div>
+                  <label className="flex flex-col gap-1 text-xs">
+                    <span className="font-medium text-gray-600">
+                      Reason (required) — why is the resident not signing?
+                    </span>
+                    <textarea
+                      value={waiverReason}
+                      onChange={(e) => setWaiverReason(e.target.value)}
+                      rows={2}
+                      className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                    />
+                  </label>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onWaive(waiverReason)}
+                      disabled={disabled || waiverReason.trim() === ""}
+                      className="rounded-md border-l-4 border-accent bg-accent-soft px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-accent disabled:opacity-50"
+                    >
+                      Record without resident signature
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWaiverOpen(false)}
+                      disabled={disabled}
+                      className="rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
