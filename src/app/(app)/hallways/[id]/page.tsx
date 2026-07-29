@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { BackLink } from "@/components/back-link";
 import { HallwayRoster, type RosterEntry } from "@/components/hallway-roster";
 import type { Hallway, OccupancyStatus } from "@/lib/types";
 
@@ -64,6 +65,11 @@ export default async function HallwayPage({
 
   return (
     <section>
+      {/* Up one level: hallway → dashboard. */}
+      <div className="mb-3">
+        <BackLink href="/" label="TUDOR HALL" />
+      </div>
+
       <nav className="text-sm text-gray-500">
         <Link href="/" className="hover:text-navy hover:underline">
           TUDOR HALL

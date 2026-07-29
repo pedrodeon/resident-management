@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { BackLink } from "@/components/back-link";
 import { StatusChip } from "@/components/status-chip";
 import {
   InspectionHistory,
@@ -81,6 +82,14 @@ export default async function RoomPage({
 
   return (
     <section>
+      {/* Up one level: room → its hallway. */}
+      <div className="mb-3">
+        <BackLink
+          href={`/hallways/${room.hallways.id}`}
+          label={room.hallways.name}
+        />
+      </div>
+
       <nav className="text-sm text-gray-500">
         <Link href="/" className="hover:text-navy hover:underline">
           TUDOR HALL
