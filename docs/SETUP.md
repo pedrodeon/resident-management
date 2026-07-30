@@ -118,6 +118,21 @@ A fixture project drifts as the suite runs (events are append-only, so they
 accumulate). If the counts stop matching, delete the project and redo this —
 that's cheaper than unpicking it.
 
+## Email (incident reports + maintenance requests)
+
+Both report forms send through [Resend](https://resend.com) from server
+actions — the API key never reaches the browser. Add to `.env.local`:
+
+```
+RESEND_API_KEY=...                      # server-only
+EMAIL_FROM="Tudor Hall <reports@...>"   # a sender on your verified domain
+INCIDENT_EMAIL_TO=a@x.edu,b@y.edu       # comma-separated
+MAINTENANCE_EMAIL_TO=facilities@x.edu
+```
+
+Until these are set, submitting a form shows a clear "email isn't configured"
+error; maintenance requests are still saved to their list either way.
+
 ## Notes for later
 
 - **The current term** lives in the single-row `app_settings` table, seeded

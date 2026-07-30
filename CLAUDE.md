@@ -337,6 +337,28 @@ and much lighter. Don't add a third inspection type for it.
 Append-only and immutable like the event tables (no update/delete for anyone).
 Recorded from the "Room check" button on room detail.
 
+### maintenance_requests (staff-filed, mutable status — added post-v1)
+- `id` (uuid, pk)
+- `location` (text, required non-blank) — free text: a room, a hallway, a
+  bathroom, anywhere in the building. Never a person.
+- `description` (text, required non-blank)
+- `urgency` (text check: `low` | `normal` | `high`)
+- `status` (text check: `open` | `done`) — deliberately MUTABLE, unlike the
+  audit tables: open → done (and back) is the point. A check constraint keeps
+  `done_by`/`done_at` set exactly when status is `done`.
+- `created_by` (uuid, fk → users) — RLS pins this to the caller
+- `created_at`, `done_by`, `done_at`
+
+Any staff files, reads, and closes/reopens; NO delete policy for any role —
+closed requests are history. Filing also emails MAINTENANCE_EMAIL_TO via
+Resend (row first, then email, so a failed send never loses the request).
+
+**Incident reports are email-only by design** — they concern named students,
+so nothing is stored: the form emails INCIDENT_EMAIL_TO, cc's the filer, and
+sets reply-to to the filer. Email config lives in env vars (RESEND_API_KEY,
+EMAIL_FROM, INCIDENT_EMAIL_TO, MAINTENANCE_EMAIL_TO); sending happens only in
+server actions via src/lib/email.ts (`server-only`).
+
 ### Relationships
 - A hallway has many rooms. A room has many occupancies (its residents).
 - A person has many occupancies — one per term they lived here.
@@ -470,12 +492,11 @@ Build in this order; each step should be usable before starting the next:
 
 ## Explicitly out of scope for v1
 
-Do not build these yet: photo attachments on inspections (STRONGLY recommended
-as the first v2 addition — a photo of a wall at move-in ends arguments at
-move-out), incident reports, maintenance tickets, package logging, duty/shift
+Do not build these yet: package logging, duty/shift
 scheduling, roommate agreements, named/configurable break periods with date
 ranges, damage cost calculation or billing, student self-service, and
-notifications.
+notifications. (Photo attachments, incident reports, and maintenance requests
+have since been built — see the data model above.)
 
 ## Working conventions
 

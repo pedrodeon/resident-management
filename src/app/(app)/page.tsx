@@ -109,6 +109,25 @@ export default async function Dashboard() {
         </ActionTile>
       </div>
 
+      {/* Reporting — deliberately quieter than the routine actions above so
+          five buttons don't crowd a phone. */}
+      <div className="grid grid-cols-2 gap-3 sm:max-w-lg">
+        <CardLink
+          variant="glassQuiet"
+          href="/reports/incident"
+          className="text-center text-xs font-medium text-white/80 transition-colors hover:text-white"
+        >
+          Incident report
+        </CardLink>
+        <CardLink
+          variant="glassQuiet"
+          href="/maintenance"
+          className="text-center text-xs font-medium text-white/80 transition-colors hover:text-white"
+        >
+          Maintenance
+        </CardLink>
+      </div>
+
       {/* Hallways card */}
       <Card variant="panel">
         <CardTitle>Hallways</CardTitle>
