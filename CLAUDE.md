@@ -436,7 +436,7 @@ column-level policies. Not worth the complexity in v1.
    of two inspections (typically move-in vs. move-out) with differences
    highlighted.
 
-6. **Move-in / move-out** — the semester occupancy flow, reachable from the desk.
+6. **Check in / out** (the desk) — the semester occupancy flow.
    Search ANY resident building-wide by name or student ID, see status, record
    check-in or check-out, and create the paired move_in/move_out inspection.
    Prominently shows **who is still `expected`** so the RD can chase no-shows.

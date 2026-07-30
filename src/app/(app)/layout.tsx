@@ -45,7 +45,7 @@ export default async function AppLayout({
               Home
             </Link>
             <Link href="/desk" className={glassPill}>
-              Move-in / out
+              Check in / out
             </Link>
             {isRd && (
               <Link href="/admin" className={glassPill}>

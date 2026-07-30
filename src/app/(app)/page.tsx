@@ -94,15 +94,12 @@ export default async function Dashboard() {
         caption={<>{pct}% of the roster is in the building</>}
       />
 
-      {/* Quick actions — five identical tiles, one row on wide screens,
-          wrapping 2-then-3 per row on phones so nothing squishes. */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-        <ActionTile href="/desk" label="Check in">
-          <CheckIcon />
-        </ActionTile>
-        {/* Same destination as the nav's Move-in / out; the top-right header
-            button is the app's actual Sign out. */}
-        <ActionTile href="/desk" label="Move-in / out">
+      {/* Quick actions — four identical tiles: one even row on wide screens,
+          a clean 2x2 on phones. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {/* One button for the whole occupancy flow — check-in, check-out, and
+            the arrived/not-arrived roster all live on this screen. */}
+        <ActionTile href="/desk" label="Check in / out">
           <SwapIcon />
         </ActionTile>
         <ActionTile href="/room-checks" label="Room checks">
@@ -166,20 +163,6 @@ function Greeting({
       <p className="text-sm text-white/70">{lead}</p>
       <div className="mt-4 flex flex-col gap-5">{children}</div>
     </section>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M5 13l4 4L19 7"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
 

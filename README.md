@@ -16,7 +16,7 @@ See [CLAUDE.md](CLAUDE.md) for the full product spec and data model.
   screen during breaks.
 - **Room detail** — residents with student IDs, plus the room's inspection
   history and a side-by-side compare.
-- **Move-in / move-out** (`/desk`) — search any resident, record check-in or
+- **Check in / out** (`/desk`) — search any resident, record check-in or
   check-out, and see who has not arrived yet. Check-in is gated on a move-in
   inspection **signed by both the resident and the RA** (finger-drawn on
   screen, stored immutably against that exact inspection). Check-out is gated

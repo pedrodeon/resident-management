@@ -26,7 +26,7 @@ type ResidentRow = {
   }[];
 };
 
-export const metadata = { title: "Move-in / Move-out — Tudor Hall" };
+export const metadata = { title: "Check in / out — Tudor Hall" };
 
 export default async function DeskPage() {
   const supabase = await createClient();
@@ -61,7 +61,7 @@ export default async function DeskPage() {
     <section>
       <PageHeader back={{ href: "/", label: "TUDOR HALL" }} />
 
-      <PageTitle>Move-in / Move-out</PageTitle>
+      <PageTitle>Check in / out</PageTitle>
       <p className="mt-1 text-sm text-white/60">
         Search any resident to record a check-in or check-out.
       </p>
