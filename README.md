@@ -32,6 +32,9 @@ See [CLAUDE.md](CLAUDE.md) for the full product spec and data model.
   recorded append-only from the room page.
 - **Resident detail** — one stay: the person's record, that stay's occupancy,
   presence and room-change history, and links to their other terms.
+- **New or returning student** — search the people already on record, then open
+  one new stay for them: same person, new occupancy, previous stay archived and
+  untouched. A student ID we already have can never become a second record.
 - **Admin** (RD only) — residents, rooms, staff invites, hallway coverage, the
   inspection template, and the current term.
 

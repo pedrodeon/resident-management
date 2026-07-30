@@ -2,7 +2,7 @@ import Link from "next/link";
 import { BackLink } from "@/components/back-link";
 
 const CARDS = [
-  { href: "/admin/residents", label: "Residents", desc: "Add, edit, and remove residents; assign rooms." },
+  { href: "/admin/residents", label: "Residents", desc: "Open stays for new and returning students; edit, archive, and set the term." },
   { href: "/admin/rooms", label: "Rooms", desc: "Manage rooms within each hallway." },
   { href: "/admin/staff", label: "Staff", desc: "Invite and remove RAs; assign hallway coverage." },
   { href: "/admin/inventory", label: "Inventory template", desc: "Edit the room-inspection checklist." },

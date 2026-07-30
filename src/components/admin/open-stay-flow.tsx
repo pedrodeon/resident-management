@@ -1,0 +1,428 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { StatusChip } from "@/components/status-chip";
+import { openStay } from "@/app/(app)/admin/residents/actions";
+import type { OccupancyStatus } from "@/lib/types";
+
+export type PersonStay = {
+  id: string;
+  term: string;
+  occupancy_status: OccupancyStatus;
+  is_archived: boolean;
+  room_label: string;
+};
+
+export type PersonOption = {
+  id: string;
+  full_name: string;
+  student_id: string;
+  phone: string;
+  emergency_contact: string;
+  stays: PersonStay[];
+};
+
+export type RoomChoice = {
+  id: string;
+  label: string;
+  occupants: number;
+  capacity: number;
+};
+
+/** Who the new stay is for: an existing person, or one being created. */
+type Subject =
+  | { kind: "existing"; person: PersonOption }
+  | { kind: "new"; full_name: string; student_id: string };
+
+/**
+ * The returning-student flow. Step 1 finds the person — searching rather than
+ * typing a name in blind, so the RD can see that this is the same student who
+ * lived here before. Step 2 opens ONE new occupancy for them.
+ *
+ * Search is client-side over the already-loaded list: ~200 people filter
+ * instantly, and the query never reaches the URL, since resident data must not
+ * appear in URLs (CLAUDE.md).
+ */
+export function OpenStayFlow({
+  people,
+  rooms,
+  currentTerm,
+}: {
+  people: PersonOption[];
+  rooms: RoomChoice[];
+  currentTerm: string;
+}) {
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const [subject, setSubject] = useState<Subject | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const q = query.trim().toLowerCase();
+  const matches = q
+    ? people.filter(
+        (p) =>
+          p.full_name.toLowerCase().includes(q) ||
+          p.student_id.toLowerCase().includes(q),
+      )
+    : people;
+
+  function pickExisting(person: PersonOption) {
+    setError(null);
+    setSubject({ kind: "existing", person });
+  }
+
+  if (subject) {
+    return (
+      <StayForm
+        subject={subject}
+        rooms={rooms}
+        currentTerm={currentTerm}
+        error={error}
+        isPending={isPending}
+        onBack={() => {
+          setError(null);
+          setSubject(null);
+        }}
+        onSubmit={(values) => {
+          setError(null);
+          startTransition(async () => {
+            const result = await openStay({
+              person:
+                subject.kind === "existing"
+                  ? { kind: "existing", person_id: subject.person.id }
+                  : {
+                      kind: "new",
+                      full_name: values.full_name,
+                      student_id: values.student_id,
+                    },
+              room_id: values.room_id,
+              term: values.term,
+              phone: values.phone,
+              emergency_contact: values.emergency_contact,
+            });
+
+            if (result.ok) {
+              // Land on the new stay: its "Other stays" section is the proof
+              // that the old one is separate and intact.
+              router.push(`/residents/${result.occupancyId}`);
+              return;
+            }
+            setError(result.error);
+            // A student ID collision isn't a dead end — switch to the person we
+            // already have, keeping the RD in the flow.
+            if ("duplicateOf" in result) {
+              const existing = people.find((p) => p.id === result.duplicateOf.person_id);
+              if (existing) setSubject({ kind: "existing", person: existing });
+            }
+          });
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">Find the student</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name or student ID"
+            autoComplete="off"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-base outline-none focus:border-navy focus:ring-2 focus:ring-navy/30"
+          />
+        </label>
+
+        {people.length === 0 ? (
+          <p className="mt-3 text-sm text-gray-500">
+            No students on record yet — add the first one below.
+          </p>
+        ) : matches.length === 0 ? (
+          <p className="mt-3 text-sm text-gray-500">
+            No match for &ldquo;{query}&rdquo;. If they&rsquo;re new to Tudor
+            Hall, add them below.
+          </p>
+        ) : (
+          <ul className="mt-3 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+            {matches.map((person) => (
+              <li key={person.id}>
+                <button
+                  type="button"
+                  onClick={() => pickExisting(person)}
+                  className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-3 text-left hover:bg-gray-50"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-ink">{person.full_name}</p>
+                    <p className="mt-0.5 font-mono text-xs text-gray-500">
+                      {person.student_id}
+                    </p>
+                    <StayLines stays={person.stays} />
+                  </div>
+                  <span className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white">
+                    New stay
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-white p-4">
+        <h2 className="text-sm font-semibold">Not on the list?</h2>
+        <p className="mt-0.5 text-xs text-gray-500">
+          Only for a student who has never lived in Tudor Hall. Searching first
+          keeps us from making a second record of someone we already have.
+        </p>
+        <button
+          type="button"
+          onClick={() =>
+            setSubject({
+              kind: "new",
+              full_name: "",
+              // Prefill whatever they typed — usually it's the ID they searched.
+              student_id: /^[a-z]?\d/i.test(query.trim()) ? query.trim() : "",
+            })
+          }
+          className="mt-3 rounded-md border border-navy px-3 py-1.5 text-sm font-semibold text-navy transition-colors hover:bg-navy hover:text-white"
+        >
+          Add a new student
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** A person's stays, most recent first — the "have we housed them before" signal. */
+function StayLines({ stays }: { stays: PersonStay[] }) {
+  if (stays.length === 0) {
+    return (
+      <p className="mt-1 text-xs text-gray-400">On record, but no stays yet.</p>
+    );
+  }
+  return (
+    <ul className="mt-1.5 flex flex-col gap-1">
+      {stays.map((stay) => (
+        <li key={stay.id} className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+          <span className="font-medium text-gray-600">{stay.term}</span>
+          <span>{stay.room_label}</span>
+          <StatusChip
+            status={stay.occupancy_status}
+            isPresent={stay.occupancy_status === "checked_in"}
+          />
+          {stay.is_archived && (
+            <span className="rounded bg-gray-100 px-1.5 py-0.5 font-medium text-gray-500">
+              archived
+            </span>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+type FormValues = {
+  full_name: string;
+  student_id: string;
+  room_id: string;
+  term: string;
+  phone: string;
+  emergency_contact: string;
+};
+
+function StayForm({
+  subject,
+  rooms,
+  currentTerm,
+  error,
+  isPending,
+  onBack,
+  onSubmit,
+}: {
+  subject: Subject;
+  rooms: RoomChoice[];
+  currentTerm: string;
+  error: string | null;
+  isPending: boolean;
+  onBack: () => void;
+  onSubmit: (values: FormValues) => void;
+}) {
+  const existing = subject.kind === "existing" ? subject.person : null;
+  const [values, setValues] = useState<FormValues>({
+    full_name: subject.kind === "existing" ? subject.person.full_name : subject.full_name,
+    student_id: subject.kind === "existing" ? subject.person.student_id : subject.student_id,
+    room_id: "",
+    term: currentTerm,
+    phone: existing?.phone ?? "",
+    emergency_contact: existing?.emergency_contact ?? "",
+  });
+
+  function set(patch: Partial<FormValues>) {
+    setValues((v) => ({ ...v, ...patch }));
+  }
+
+  const termIsCurrent = values.term.trim() === currentTerm;
+  const priorStays = existing?.stays.filter((s) => !s.is_archived) ?? [];
+  const completedPriors = priorStays.filter(
+    (s) => s.occupancy_status === "checked_out",
+  );
+  const canSubmit =
+    values.room_id !== "" &&
+    values.term.trim() !== "" &&
+    (subject.kind === "existing" ||
+      (values.full_name.trim() !== "" && values.student_id.trim() !== ""));
+
+  return (
+    <div className="flex flex-col gap-5">
+      <button
+        type="button"
+        onClick={onBack}
+        disabled={isPending}
+        className="self-start text-sm text-navy hover:underline disabled:opacity-50"
+      >
+        ← Choose a different student
+      </button>
+
+      {error && (
+        <p
+          role="alert"
+          className="rounded-md border-l-4 border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800"
+        >
+          {error}
+        </p>
+      )}
+
+      <div className="rounded-lg border border-gray-200 bg-white p-4">
+        {existing ? (
+          <>
+            <h2 className="text-sm font-semibold">
+              New stay for {existing.full_name}
+            </h2>
+            <p className="mt-0.5 text-xs text-gray-500">
+              <span className="font-mono">{existing.student_id}</span> — already
+              on record, so this creates a stay, not a second student.
+            </p>
+            {completedPriors.length > 0 && (
+              <p className="mt-2 text-xs text-gray-500">
+                {completedPriors.length === 1
+                  ? "Their completed stay will be archived"
+                  : `Their ${completedPriors.length} completed stays will be archived`}{" "}
+                when this one opens — hidden from everyday screens, and still
+                there for dispute history.
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <h2 className="text-sm font-semibold">New student</h2>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field
+                label="Full name"
+                value={values.full_name}
+                onChange={(v) => set({ full_name: v })}
+              />
+              <Field
+                label="Student ID"
+                value={values.student_id}
+                onChange={(v) => set({ student_id: v })}
+              />
+            </div>
+          </>
+        )}
+
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Room</span>
+            <select
+              value={values.room_id}
+              onChange={(e) => set({ room_id: e.target.value })}
+              className="rounded-md border border-gray-300 px-3 py-2 text-base"
+            >
+              <option value="">Select a room…</option>
+              {rooms.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.label} · {r.occupants}/{r.capacity}
+                  {r.occupants >= r.capacity ? " full" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">Term</span>
+            <input
+              type="text"
+              value={values.term}
+              onChange={(e) => set({ term: e.target.value })}
+              placeholder="Fall 2026"
+              className="rounded-md border border-gray-300 px-3 py-2 text-base"
+            />
+          </label>
+
+          <Field label="Phone" value={values.phone} onChange={(v) => set({ phone: v })} />
+          <Field
+            label="Emergency contact"
+            value={values.emergency_contact}
+            onChange={(v) => set({ emergency_contact: v })}
+          />
+        </div>
+
+        {!termIsCurrent && values.term.trim() !== "" && (
+          <p className="mt-3 rounded-md border-l-4 border-accent bg-accent-soft px-3 py-2 text-sm text-ink">
+            {`The current term is ${currentTerm || "not set"}, so a ${values.term.trim()} stay won’t show on the dashboard, hallway or room screens until the current term is switched to match. Useful for setting up next semester early.`}
+          </p>
+        )}
+
+        <p className="mt-3 text-xs text-gray-500">
+          The stay starts as <strong>expected</strong>. Check-in happens on the
+          resident&rsquo;s own screen, after a signed move-in inspection.
+        </p>
+
+        <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            onClick={() => onSubmit(values)}
+            disabled={isPending || !canSubmit}
+            className="rounded-md bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
+          >
+            {isPending ? "Opening stay…" : "Open stay"}
+          </button>
+          <button
+            type="button"
+            onClick={onBack}
+            disabled={isPending}
+            className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="flex flex-col gap-1 text-sm">
+      <span className="font-medium">{label}</span>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-md border border-gray-300 px-3 py-2 text-base"
+      />
+    </label>
+  );
+}

@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentTerm } from "@/lib/current-term";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -14,9 +13,29 @@ export type ResidentInput = {
   emergency_contact: string;
 };
 
-/** What an upsert did, so the UI can say "existing person — new stay". */
-export type AddResult =
-  | { ok: true; reusedPerson: boolean; personName: string }
+/**
+ * Opening a stay: either for a person we already have (the returning student) or
+ * for a brand-new one. The caller says which — the path is never inferred from
+ * whether a student ID happens to match, because the RD needs to SEE that we
+ * matched their Jane Doe to last year's Jane Doe before a stay is created.
+ */
+export type OpenStayInput = {
+  person:
+    | { kind: "existing"; person_id: string }
+    | { kind: "new"; full_name: string; student_id: string };
+  room_id: string;
+  term: string;
+  phone: string;
+  emergency_contact: string;
+};
+
+export type OpenStayResult =
+  | { ok: true; occupancyId: string; archivedPriorStays: number }
+  /**
+   * The "new person" path hit a student ID we already have. Not an error the RD
+   * should have to re-type their way out of: the UI switches to that person.
+   */
+  | { ok: false; duplicateOf: { person_id: string; full_name: string }; error: string }
   | { ok: false; error: string };
 
 function clean(input: ResidentInput) {
@@ -29,6 +48,11 @@ function clean(input: ResidentInput) {
   };
 }
 
+const STATUS_WORD: Record<string, string> = {
+  expected: "still expected",
+  checked_in: "still checked in",
+};
+
 function revalidateRoster() {
   revalidatePath("/admin/residents");
   revalidatePath("/desk");
@@ -39,77 +63,147 @@ function revalidateRoster() {
 // UI guard is defense-in-depth, not the security boundary.
 
 /**
- * One form, matched on student ID: the person is created if new and reused if
- * we've housed them before, then a NEW occupancy is opened for the current
- * term. That reuse is the whole point of the split — a returning student keeps
- * their identity and their old stay stays exactly as it was recorded.
+ * Open a new stay — the returning-student flow.
+ *
+ * A returning student keeps their `people` row and gets a NEW occupancy. Their
+ * previous stay is never reused, reset, or edited: it keeps its room, status,
+ * and the inspections and events hanging off it, because that is the record a
+ * damage dispute is settled from. Completed previous stays are archived so the
+ * everyday screens show only the live roster.
  */
-export async function addResident(input: ResidentInput): Promise<AddResult> {
-  const row = clean(input);
-  if (!row.full_name || !row.student_id || !row.room_id) {
-    return { ok: false, error: "Name, student ID, and room are required." };
-  }
+export async function openStay(input: OpenStayInput): Promise<OpenStayResult> {
+  const term = input.term.trim();
+  const phone = input.phone.trim() || null;
+  const emergency_contact = input.emergency_contact.trim() || null;
+
+  if (!input.room_id) return { ok: false, error: "Pick a room for the new stay." };
+  if (!term) return { ok: false, error: "The term can't be blank." };
 
   const supabase = await createClient();
-  const term = await getCurrentTerm();
-  if (!term) {
+  let personId: string;
+  let personName: string;
+
+  if (input.person.kind === "existing") {
+    const { data: person, error } = await supabase
+      .from("people")
+      .select("id, full_name")
+      .eq("id", input.person.person_id)
+      .single();
+    if (error) return { ok: false, error: `That person no longer exists: ${error.message}` };
+    personId = person.id;
+    personName = person.full_name;
+
+    // Refresh contact details; nothing about their history is touched.
+    const { error: updateError } = await supabase
+      .from("people")
+      .update({ phone, emergency_contact })
+      .eq("id", personId);
+    if (updateError) return { ok: false, error: updateError.message };
+  } else {
+    const full_name = input.person.full_name.trim();
+    const student_id = input.person.student_id.trim();
+    if (!full_name || !student_id) {
+      return { ok: false, error: "Name and student ID are required for a new student." };
+    }
+
+    // Duplicate guard: student ID is the identity key, so one match means this
+    // is not a new student at all. Hand the person back rather than making a
+    // second record of them.
+    const { data: existing, error: lookupError } = await supabase
+      .from("people")
+      .select("id, full_name")
+      .eq("student_id", student_id)
+      .maybeSingle();
+    if (lookupError) return { ok: false, error: lookupError.message };
+    if (existing) {
+      return {
+        ok: false,
+        duplicateOf: { person_id: existing.id, full_name: existing.full_name },
+        error: `${student_id} is already on record as ${existing.full_name}. Open a new stay for them instead of creating a second record.`,
+      };
+    }
+
+    const { data: created, error } = await supabase
+      .from("people")
+      .insert({ full_name, student_id, phone, emergency_contact })
+      .select("id, full_name")
+      .single();
+    // The unique constraint is the backstop for the race between the lookup
+    // above and this insert.
+    if (error) {
+      return {
+        ok: false,
+        error: error.code === "23505"
+          ? `${student_id} was just added by someone else. Search for them and open a stay instead.`
+          : error.message,
+      };
+    }
+    personId = created.id;
+    personName = created.full_name;
+  }
+
+  // A stay that is still expected or checked_in is a live one: opening another
+  // would put this person in two rooms, and archiving it behind the RD's back
+  // would drop them off the break roster. Refuse with an instruction instead —
+  // the partial unique index would reject it anyway, less legibly.
+  const { data: stays, error: staysError } = await supabase
+    .from("occupancies")
+    .select("id, term, occupancy_status")
+    .eq("person_id", personId)
+    .eq("is_archived", false);
+  if (staysError) return { ok: false, error: staysError.message };
+
+  const live = (stays ?? []).find((s) => s.occupancy_status !== "checked_out");
+  if (live) {
     return {
       ok: false,
-      error: "No current term is set. Set one under Admin → Residents first.",
+      error: `${personName} is ${STATUS_WORD[live.occupancy_status] ?? "active"} for ${live.term}. Check them out, or archive that stay, before opening a new one.`,
     };
   }
 
-  // Does this person already exist? Student ID is the identity key.
-  const { data: existing, error: lookupError } = await supabase
-    .from("people")
-    .select("id, full_name")
-    .eq("student_id", row.student_id)
-    .maybeSingle();
-  if (lookupError) return { ok: false, error: lookupError.message };
-
-  let personId = existing?.id;
-  if (personId) {
-    // Refresh contact details on the existing person; never touch their history.
-    const { error } = await supabase
-      .from("people")
-      .update({
-        full_name: row.full_name,
-        phone: row.phone,
-        emergency_contact: row.emergency_contact,
-      })
-      .eq("id", personId);
-    if (error) return { ok: false, error: error.message };
-  } else {
-    const { data: created, error } = await supabase
-      .from("people")
-      .insert({
-        full_name: row.full_name,
-        student_id: row.student_id,
-        phone: row.phone,
-        emergency_contact: row.emergency_contact,
-      })
-      .select("id")
-      .single();
-    if (error) return { ok: false, error: error.message };
-    personId = created.id;
-  }
-
-  // New stay, always — an old occupancy is never reused or reset. The partial
-  // unique index rejects a second ACTIVE stay for the same person.
-  const { error: occError } = await supabase
+  // Insert BEFORE archiving, deliberately. These are two round trips and can't
+  // be atomic; if archiving came first and the insert then failed, this person
+  // would vanish from every everyday screen with nothing to replace them. This
+  // way the worst case is a new stay alongside an unarchived old one — visible
+  // on the admin list, and one click to fix.
+  const { data: opened, error: occError } = await supabase
     .from("occupancies")
-    .insert({ person_id: personId, room_id: row.room_id, term });
+    .insert({ person_id: personId, room_id: input.room_id, term })
+    .select("id")
+    .single();
   if (occError) {
     return {
       ok: false,
       error: occError.message.includes("occupancies_one_active_per_person")
-        ? `${row.full_name} already has an active stay. Check them out or archive it before opening a new one.`
+        ? `${personName} already has an active stay. Check them out or archive it before opening a new one.`
         : occError.message,
     };
   }
 
+  const priorIds = (stays ?? [])
+    .filter((s) => s.occupancy_status === "checked_out")
+    .map((s) => s.id);
+  let archived = 0;
+  if (priorIds.length > 0) {
+    const { data: archivedRows, error: archiveError } = await supabase
+      .from("occupancies")
+      .update({ is_archived: true })
+      .in("id", priorIds)
+      .select("id");
+    if (archiveError) {
+      // The new stay exists and is usable; say what didn't happen rather than
+      // implying the whole thing failed.
+      revalidateRoster();
+      return {
+        ok: false,
+        error: `The new stay was created, but ${personName}'s previous stay could not be archived: ${archiveError.message}. Archive it from the Residents list.`,
+      };
+    }
+    archived = archivedRows?.length ?? 0;
+  }
+
   revalidateRoster();
-  return { ok: true, reusedPerson: !!existing, personName: row.full_name };
+  return { ok: true, occupancyId: opened.id, archivedPriorStays: archived };
 }
 
 /**
