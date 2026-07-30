@@ -25,7 +25,10 @@ export function PillToggle<T extends string>({
           type="button"
           aria-pressed={option.value === value}
           onClick={() => onChange(option.value)}
-          className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+          // touch-action-manipulation + select-none: keep mobile Safari's
+          // double-tap-zoom and long-press text selection from swallowing
+          // taps on these small controls.
+          className={`select-none rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors [touch-action:manipulation] ${
             option.value === value
               ? "bg-navy text-white"
               : "bg-chip text-muted hover:bg-line"
