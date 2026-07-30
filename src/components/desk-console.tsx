@@ -2,7 +2,7 @@
 
 import { useCallback, useOptimistic, useState } from "react";
 import Link from "next/link";
-import { StatusChip } from "@/components/status-chip";
+import { StatusChip } from "@/components/ui/status-chip";
 import { OccupancyGate } from "@/components/occupancy-gate";
 import type { GateProgress } from "@/lib/occupancy-gate";
 import type { OccupancyStatus } from "@/lib/types";

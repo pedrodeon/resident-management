@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BackLink } from "@/components/back-link";
-import { StatusChip } from "@/components/status-chip";
+import { StatusChip } from "@/components/ui/status-chip";
 import {
   InspectionHistory,
   type HistoryEntry,

@@ -24,6 +24,39 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/*
+ * Design system — the dashboard's visual language, codified.
+ *
+ * The COMPONENTS live in src/components/ui/ (Card, Badge, Button, StatusChip,
+ * typography, …); this block records the conventions they embed, so tokens and
+ * usage rules are documented in one place. Colors above; type, spacing, and
+ * shape below. On-navy surfaces use white at fixed opacities rather than
+ * extra color tokens: white/90 icons · white/70 lead text · white/60 labels
+ * and captions · white/50 de-emphasis · white/10 borders and track fills ·
+ * white/5 glass card fill.
+ *
+ * Type roles (Tailwind's default scale — these pairings ARE the system):
+ *   page title      text-2xl font-semibold text-navy
+ *   card title      text-lg  font-bold     text-navy
+ *   section label   text-sm  font-semibold uppercase tracking-wide  text-gray-500
+ *   eyebrow on navy text-xs  font-semibold uppercase tracking-wider text-white/60
+ *   stat value      text-5xl font-bold tracking-tight
+ *   row title       font-bold text-ink; row subtext text-sm text-gray-500
+ *   metadata        text-xs text-gray-500; monospace ids font-mono
+ *
+ * Spacing rhythm:
+ *   page-level blocks     gap-5 / mt-6+
+ *   cards                 p-4 (p-5 for hero/glass); sm:p-5 on wide screens
+ *   rows in a list        p-3 (dashboard) or px-4 py-2.5 (dense lists)
+ *   heading → content     mt-2 / mt-3
+ *
+ * Shape:
+ *   rounded-2xl  top-level surfaces (cards, tiles, shell panels)
+ *   rounded-xl   rows and small tiles inside a card
+ *   rounded-md   controls (buttons, inputs)
+ *   rounded-full chips and badges
+ */
+
 /* Used at a desk and on phones in one consistent look — no dark-mode invert. */
 body {
   background: #ffffff;

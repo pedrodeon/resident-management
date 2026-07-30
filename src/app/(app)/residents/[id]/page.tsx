@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getStaffContext } from "@/lib/auth";
 import { getCurrentTerm } from "@/lib/current-term";
 import { BackLink } from "@/components/back-link";
-import { StatusChip } from "@/components/status-chip";
+import { StatusChip } from "@/components/ui/status-chip";
 import { OccupancyGate } from "@/components/occupancy-gate";
 import { ReassignRoom, type RoomOption } from "@/components/reassign-room";
 import { gateProgress, type GateInspection } from "@/lib/occupancy-gate";

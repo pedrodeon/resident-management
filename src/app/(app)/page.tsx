@@ -1,6 +1,11 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getStaffContext } from "@/lib/auth";
+import { NavyShell } from "@/components/ui/navy-shell";
+import { StatCard } from "@/components/ui/stat-card";
+import { ActionTile } from "@/components/ui/action-tile";
+import { Card, CardLink } from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/typography";
+import { HighlightMark, SquareBadge } from "@/components/ui/badge";
 import type { Hallway } from "@/lib/types";
 
 // Nested shape returned by the dashboard query below.
@@ -55,12 +60,12 @@ export default async function Dashboard() {
 
   if (error || !hallways || hallways.length === 0) {
     return (
-      <DashboardShell greeting={`${greeting()}, ${firstName}`}>
-        <p className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+      <NavyShell lead={`${greeting()}, ${firstName}`}>
+        <Card variant="glassQuiet" className="text-sm text-white/70">
           No hallways found. Apply the schema and seed data first — see
           docs/SETUP.md.
-        </p>
-      </DashboardShell>
+        </Card>
+      </NavyShell>
     );
   }
 
@@ -79,30 +84,15 @@ export default async function Dashboard() {
     totals.total > 0 ? Math.round((totals.checkedIn / totals.total) * 100) : 0;
 
   return (
-    <DashboardShell greeting={`${greeting()}, ${firstName}`}>
+    <NavyShell lead={`${greeting()}, ${firstName}`}>
       {/* Hero stat */}
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-lg">
-        <p className="text-xs font-semibold uppercase tracking-wider text-white/60">
-          Checked in
-        </p>
-        <p className="mt-1 flex items-baseline gap-2">
-          <span className="text-5xl font-bold tracking-tight text-white">
-            {totals.checkedIn}
-          </span>
-          <span className="text-lg font-medium text-white/50">
-            / {totals.total}
-          </span>
-        </p>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-accent to-white"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        <p className="mt-2 text-sm text-white/60">
-          {pct}% of the roster is in the building
-        </p>
-      </div>
+      <StatCard
+        label="Checked in"
+        value={totals.checkedIn}
+        max={totals.total}
+        pct={pct}
+        caption={<>{pct}% of the roster is in the building</>}
+      />
 
       {/* Quick actions — real routes only */}
       <div className="grid grid-cols-3 gap-3 sm:max-w-lg">
@@ -118,8 +108,8 @@ export default async function Dashboard() {
       </div>
 
       {/* Hallways card */}
-      <div className="rounded-2xl bg-white p-4 shadow-xl sm:p-5">
-        <h2 className="px-1 text-lg font-bold text-navy">Hallways</h2>
+      <Card variant="panel">
+        <CardTitle>Hallways</CardTitle>
         <ul className="mt-3 flex flex-col gap-2.5">
           {hallways.map((hallway) => {
             const counts = countsFor(hallway);
@@ -128,13 +118,8 @@ export default async function Dashboard() {
               .filter(Boolean);
             return (
               <li key={hallway.id}>
-                <Link
-                  href={`/hallways/${hallway.id}`}
-                  className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 shadow-sm transition-colors hover:border-navy/30 hover:bg-gray-50"
-                >
-                  <span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-navy text-sm font-bold text-white">
-                    {abbrev(hallway)}
-                  </span>
+                <CardLink variant="row" href={`/hallways/${hallway.id}`}>
+                  <SquareBadge>{abbrev(hallway)}</SquareBadge>
                   <div className="min-w-0">
                     <p className="font-bold text-ink">{hallway.name}</p>
                     <p className="mt-0.5 truncate text-sm text-gray-500">
@@ -142,60 +127,19 @@ export default async function Dashboard() {
                       {counts.away > 0 && (
                         <span className="font-medium text-ink">
                           {" · "}
-                          <span className="rounded bg-accent-soft px-1.5 py-0.5">
-                            {counts.away} away
-                          </span>
+                          <HighlightMark>{counts.away} away</HighlightMark>
                         </span>
                       )}
                       {coveredBy.length > 0 && ` · ${coveredBy.join(", ")}`}
                     </p>
                   </div>
-                </Link>
+                </CardLink>
               </li>
             );
           })}
         </ul>
-      </div>
-    </DashboardShell>
-  );
-}
-
-/**
- * Navy-gradient dashboard region. Breaks out of the white `<main>` padding so
- * it sits flush under the shared navy header, matching the mockup's dark top.
- */
-function DashboardShell({
-  greeting,
-  children,
-}: {
-  greeting: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="-mx-4 -my-8 min-h-[calc(100vh-3.5rem)] bg-gradient-to-b from-navy-dark to-navy px-4 pb-10 pt-6 sm:-mx-6 sm:px-6">
-      <p className="text-sm text-white/70">{greeting}</p>
-      <div className="mt-4 flex flex-col gap-5">{children}</div>
-    </div>
-  );
-}
-
-function ActionTile({
-  href,
-  label,
-  children,
-}: {
-  href: string;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex flex-col items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-4 text-white transition-colors hover:bg-white/10"
-    >
-      <span className="text-white/90">{children}</span>
-      <span className="text-xs font-medium">{label}</span>
-    </Link>
+      </Card>
+    </NavyShell>
   );
 }
 
