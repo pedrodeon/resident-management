@@ -19,19 +19,33 @@ export type AlertTone = keyof typeof ALERT_TONE;
 
 export function Alert({
   tone,
+  icon = false,
   className,
   children,
 }: {
   tone: AlertTone;
+  /** Lead with the amber "!" mark (the mockup's signature-reminder note). */
+  icon?: boolean;
   className?: string;
   children: ReactNode;
 }) {
+  const base = icon
+    ? `flex items-start gap-2.5 ${ALERT_TONE[tone]}`
+    : ALERT_TONE[tone];
   return (
     <p
       role={tone === "error" ? "alert" : undefined}
-      className={className ? `${ALERT_TONE[tone]} ${className}` : ALERT_TONE[tone]}
+      className={className ? `${base} ${className}` : base}
     >
-      {children}
+      {icon && (
+        <span
+          aria-hidden="true"
+          className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full border border-accent-border bg-accent-soft text-[11px] font-bold text-accent-deep"
+        >
+          !
+        </span>
+      )}
+      {icon ? <span className="min-w-0">{children}</span> : children}
     </p>
   );
 }

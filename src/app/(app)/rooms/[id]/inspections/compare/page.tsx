@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { BackLink } from "@/components/back-link";
 import { ConditionChip } from "@/components/condition-chip";
 import { PHOTO_BUCKET } from "@/lib/photos";
 import type { InspectionType, ItemCondition } from "@/lib/types";
 import { PageTitle } from "@/components/ui/typography";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 type SideInspection = {
   id: string;
@@ -135,13 +135,7 @@ export default async function ComparePage({
 
   return (
     <section>
-      {/* Up one level: compare → the room. */}
-      <div className="mb-3">
-        <BackLink
-          href={`/rooms/${roomId}`}
-          label={left.rooms ? `Room ${left.rooms.room_number}` : "Room"}
-        />
-      </div>
+      <PageHeader back={{ href: `/rooms/${roomId}`, label: left.rooms ? `Room ${left.rooms.room_number}` : "Room" }} />
 
       <nav className="text-sm text-white/50">
         <Link href="/" className="hover:text-white hover:underline">

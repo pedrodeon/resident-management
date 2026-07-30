@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { BackLink } from "@/components/back-link";
 import { StatusChip } from "@/components/ui/status-chip";
 import {
   InspectionHistory,
@@ -12,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/button";
 import { PageTitle, SectionLabel } from "@/components/ui/typography";
+import { PageHeader } from "@/components/ui/page-header";
 
 type RoomDetail = {
   id: string;
@@ -87,13 +87,7 @@ export default async function RoomPage({
 
   return (
     <section>
-      {/* Up one level: room → its hallway. */}
-      <div className="mb-3">
-        <BackLink
-          href={`/hallways/${room.hallways.id}`}
-          label={room.hallways.name}
-        />
-      </div>
+      <PageHeader back={{ href: `/hallways/${room.hallways.id}`, label: room.hallways.name }} />
 
       <nav className="text-sm text-white/50">
         <Link href="/" className="hover:text-white hover:underline">

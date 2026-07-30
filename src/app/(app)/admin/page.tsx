@@ -1,6 +1,6 @@
-import { BackLink } from "@/components/back-link";
 import { PageTitle } from "@/components/ui/typography";
 import { Card, CardLink } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 const CARDS = [
   { href: "/admin/residents", label: "Residents", desc: "Open stays for new and returning students; edit, archive, and set the term." },
@@ -12,10 +12,7 @@ const CARDS = [
 export default function AdminIndex() {
   return (
     <section>
-      {/* Up one level: admin → dashboard. */}
-      <div className="mb-3">
-        <BackLink href="/" label="TUDOR HALL" />
-      </div>
+      <PageHeader back={{ href: "/", label: "TUDOR HALL" }} />
 
       <PageTitle>Admin</PageTitle>
       <Card variant="sheet" className="mt-6">

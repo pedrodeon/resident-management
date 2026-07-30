@@ -2,13 +2,14 @@
 
 import { useCallback, useOptimistic, useState } from "react";
 import Link from "next/link";
-import { StatusChip } from "@/components/ui/status-chip";
+import { Alert } from "@/components/ui/alert";
+import { Avatar, Badge } from "@/components/ui/badge";
 import { OccupancyGate } from "@/components/occupancy-gate";
+import { PillToggle } from "@/components/ui/pill-toggle";
+import { SearchInput } from "@/components/ui/search-input";
+import { SectionLabel } from "@/components/ui/typography";
 import type { GateProgress } from "@/lib/occupancy-gate";
 import type { OccupancyStatus } from "@/lib/types";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { SectionLabel } from "@/components/ui/typography";
 
 export type DeskResident = {
   id: string;
@@ -27,6 +28,9 @@ export type DeskResident = {
 
 export function DeskConsole({ residents }: { residents: DeskResident[] }) {
   const [query, setQuery] = useState("");
+  // "Not arrived" is the move-in-day chase view; "Everyone" covers check-outs
+  // and lookups. A view filter only — no data changes when it flips.
+  const [view, setView] = useState<"expected" | "everyone">("expected");
 
   // Optimistic status overlay keyed by resident id.
   const [optimistic, setOptimistic] = useOptimistic(
@@ -41,20 +45,20 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
 
   // Local filter — the search term is resident data, so it never touches the
   // URL. ~200 rows filter instantly on every keystroke; the React Compiler
-  // handles memoization (a manual useMemo here only made it skip the whole
-  // component, and its deps change on exactly the renders that recompute).
+  // handles memoization.
   const query_ = query.trim().toLowerCase();
-  const results = query_
-    ? optimistic.filter(
+  const base = view === "expected" ? expected : optimistic;
+  const visible = query_
+    ? base.filter(
         (r) =>
           r.full_name.toLowerCase().includes(query_) ||
           r.student_id.toLowerCase().includes(query_),
       )
-    : [];
+    : base;
 
   // The occupancy ladder itself lives in OccupancyGate, shared with the
-  // resident screen so the two can't drift. The desk hands it the optimistic
-  // setter so a recorded resident leaves the expected panel immediately —
+  // resident screen so the two can\'t drift. The desk hands it the optimistic
+  // setter so a recorded resident leaves the Not-arrived view immediately —
   // move-in day runs ~200 of these.
   const applyOptimistic = useCallback(
     (id: string, status: OccupancyStatus) => setOptimistic({ id, status }),
@@ -77,102 +81,89 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
   );
 
   return (
-    <div className="flex flex-col gap-8">
-
-      {/* Expected panel — the move-in-day chase list. */}
-      <section>
-        <SectionLabel className="flex items-center gap-2">
-          Not yet arrived
-          {expected.length > 0 && (
-            <Badge tone="attention" className="normal-case tracking-normal">
-              {expected.length} expected
-            </Badge>
-          )}
-        </SectionLabel>
-        {expected.length === 0 ? (
-          <p className="mt-2 text-sm text-gray-500">Everyone has arrived.</p>
-        ) : (
-          <Card as="ul" variant="list" className="mt-2">
-            {expected.map((resident) => (
-              <li
-                key={resident.id}
-                className="flex items-center justify-between gap-3 px-4 py-2.5"
-              >
-                <div>
-                  <p className="text-sm font-medium">{resident.full_name}</p>
-                  <p className="text-xs text-gray-500">
-                    {resident.hallway_name} · Room {resident.room_number}
-                  </p>
-                </div>
-                {gate(resident, "move_in")}
-              </li>
-            ))}
-          </Card>
-        )}
-      </section>
-
-      {/* Search + act on anyone building-wide. */}
-      <section>
+    <div className="flex flex-col gap-5">
+      <div>
         <SectionLabel>Find a resident</SectionLabel>
-        <input
-          type="search"
+        <SearchInput
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name or student ID"
-          className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-base outline-none focus:border-navy focus:ring-2 focus:ring-navy/30"
           autoComplete="off"
+          className="mt-3"
         />
+      </div>
 
-        {query.trim() === "" ? (
-          <p className="mt-2 text-xs text-gray-400">
-            Check-in and check-out each require a signed inspection first —
-            move-in needs both signatures; move-out needs the RA&rsquo;s plus
-            the resident&rsquo;s or a recorded &ldquo;unavailable /
-            declined&rdquo; note.
+      <div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <SectionLabel>
+            {view === "expected" ? "Not yet arrived" : "Everyone"}
+          </SectionLabel>
+          <PillToggle
+            options={[
+              { value: "expected", label: `Not arrived ${expected.length}` },
+              { value: "everyone", label: `Everyone ${optimistic.length}` },
+            ]}
+            value={view}
+            onChange={setView}
+          />
+        </div>
+
+        {visible.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">
+            {query_
+              ? `No match for “${query}”.`
+              : view === "expected"
+                ? "Everyone has arrived."
+                : "No residents on the roster yet."}
           </p>
-        ) : results.length === 0 ? (
-          <p className="mt-3 text-sm text-gray-500">No match for “{query}”.</p>
         ) : (
-          <Card as="ul" variant="list" className="mt-3">
-            {results.map((resident) => (
+          <ul className="mt-3 flex flex-col gap-2">
+            {visible.map((resident) => (
               <li
                 key={resident.id}
-                className="flex items-center justify-between gap-3 px-4 py-3"
+                className="flex flex-wrap items-center gap-3 rounded-[18px] border border-line bg-white px-3 py-[11px] shadow-[0_2px_6px_rgba(15,29,58,0.05)]"
               >
-                <div>
+                <Avatar name={resident.full_name} />
+                <div className="min-w-0 flex-1">
                   <Link
                     href={`/residents/${resident.id}`}
-                    className="text-sm font-medium hover:text-navy hover:underline"
+                    className="block truncate text-sm font-semibold text-ink hover:text-navy hover:underline"
                   >
                     {resident.full_name}
                   </Link>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    <span className="font-mono">{resident.student_id}</span> ·{" "}
+                  <p className="mt-0.5 truncate text-xs text-muted">
                     <Link
                       href={`/hallways/${resident.hallway_id}`}
                       className="hover:text-navy hover:underline"
                     >
                       {resident.hallway_name}
                     </Link>{" "}
-                    · Room {resident.room_number}
+                    · Room {resident.room_number} ·{" "}
+                    <span className="font-mono">{resident.student_id}</span>
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <StatusChip
-                    status={resident.occupancy_status}
-                    isPresent={true}
-                  />
-                  {resident.occupancy_status === "expected" &&
-                    gate(resident, "move_in")}
-                  {resident.occupancy_status === "checked_in" &&
-                    gate(resident, "move_out")}
-                </div>
+                {/* Dynamic per stay: expected → the Check-in ladder,
+                    checked_in → Check-out, checked_out → quiet chip. */}
+                {resident.occupancy_status === "expected" ? (
+                  gate(resident, "move_in")
+                ) : resident.occupancy_status === "checked_in" ? (
+                  gate(resident, "move_out")
+                ) : (
+                  <Badge tone="quiet">Checked out</Badge>
+                )}
               </li>
             ))}
-          </Card>
+          </ul>
         )}
-      </section>
+      </div>
+
+      <Alert tone="info" icon>
+        Check-in and check-out each require a signed inspection first —
+        move-in needs both signatures; move-out needs the RA&rsquo;s plus the
+        resident&rsquo;s, or a recorded &ldquo;unavailable / declined&rdquo;
+        note.
+      </Alert>
     </div>
   );
 }

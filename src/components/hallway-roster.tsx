@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Alert } from "@/components/ui/alert";
 import { Avatar, Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PillToggle } from "@/components/ui/pill-toggle";
 import { SectionLabel } from "@/components/ui/typography";
 import { togglePresence, bulkSetPresence } from "@/app/(app)/hallways/[id]/actions";
 import type { OccupancyStatus } from "@/lib/types";
@@ -74,32 +75,20 @@ export function HallwayRoster({
     });
   }
 
-  const pill = (active: boolean) =>
-    `rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-      active ? "bg-navy text-white" : "bg-chip text-muted hover:bg-line"
-    }`;
-
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 px-1">
         <SectionLabel>Roster</SectionLabel>
-        {/* View filter (mockup's All/Away pills) — print shows the full list. */}
-        <div className="flex gap-1.5 print:hidden">
-          <button
-            type="button"
-            onClick={() => setFilter("all")}
-            className={pill(filter === "all")}
-          >
-            All {optimistic.length}
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilter("away")}
-            className={pill(filter === "away")}
-          >
-            Away {awayCount}
-          </button>
-        </div>
+        {/* View filter — print shows the full list. */}
+        <PillToggle
+          className="print:hidden"
+          options={[
+            { value: "all", label: `All ${optimistic.length}` },
+            { value: "away", label: `Away ${awayCount}` },
+          ]}
+          value={filter}
+          onChange={setFilter}
+        />
       </div>
 
       {/* Bulk sweep + print — the break-day workflow, kept from v1. */}

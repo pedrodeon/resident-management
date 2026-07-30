@@ -6,6 +6,7 @@ import { Card, CardLink } from "@/components/ui/card";
 import { CardTitle } from "@/components/ui/typography";
 import { HighlightMark, SquareBadge } from "@/components/ui/badge";
 import type { Hallway } from "@/lib/types";
+import { PageHeader } from "@/components/ui/page-header";
 
 // Nested shape returned by the dashboard query below.
 type HallwayWithCounts = Hallway & {
@@ -153,7 +154,8 @@ function Greeting({
   children: React.ReactNode;
 }) {
   return (
-    <section className="pt-2">
+    <section>
+      <PageHeader />
       <p className="text-sm text-white/70">{lead}</p>
       <div className="mt-4 flex flex-col gap-5">{children}</div>
     </section>

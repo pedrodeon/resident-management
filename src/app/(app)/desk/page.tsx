@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { BackLink } from "@/components/back-link";
 import { DeskConsole, type DeskResident } from "@/components/desk-console";
 import { gateProgress } from "@/lib/occupancy-gate";
 import type { OccupancyStatus } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { PageTitle } from "@/components/ui/typography";
+import { PageHeader } from "@/components/ui/page-header";
 
 // A row of the current_residents view: `id` is the occupancy id, which is also
 // what the inspections embed and every RPC key on.
@@ -59,10 +59,7 @@ export default async function DeskPage() {
 
   return (
     <section>
-      {/* Up one level: desk → dashboard. */}
-      <div className="mb-3">
-        <BackLink href="/" label="TUDOR HALL" />
-      </div>
+      <PageHeader back={{ href: "/", label: "TUDOR HALL" }} />
 
       <PageTitle>Move-in / Move-out</PageTitle>
       <p className="mt-1 text-sm text-white/60">

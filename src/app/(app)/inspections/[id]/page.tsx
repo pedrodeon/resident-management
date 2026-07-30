@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getStaffContext } from "@/lib/auth";
-import { BackLink } from "@/components/back-link";
 import { ConditionChip } from "@/components/condition-chip";
 import {
   InspectionSignatures,
@@ -14,6 +13,7 @@ import type { InspectionType, ItemCondition, SignatureRole } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { PageTitle } from "@/components/ui/typography";
+import { PageHeader } from "@/components/ui/page-header";
 
 type InspectionDetail = {
   id: string;
@@ -124,10 +124,7 @@ export default async function InspectionPage({
 
   return (
     <section>
-      {/* Up one level: inspection snapshot → its room. */}
-      <div className="mb-3">
-        <BackLink href={`/rooms/${room.id}`} label={`Room ${room.room_number}`} />
-      </div>
+      <PageHeader back={{ href: `/rooms/${room.id}`, label: `Room ${room.room_number}` }} />
 
       <nav className="text-sm text-white/50">
         <Link href="/" className="hover:text-white hover:underline">

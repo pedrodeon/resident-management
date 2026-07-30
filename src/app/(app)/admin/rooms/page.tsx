@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { BackLink } from "@/components/back-link";
 import { RoomsManager, type HallwayGroup } from "@/components/admin/rooms-manager";
 import { PageTitle } from "@/components/ui/typography";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 type HallwayRow = {
   id: string;
@@ -44,10 +44,7 @@ export default async function AdminRoomsPage() {
 
   return (
     <section>
-      {/* Up one level: section → admin index. */}
-      <div className="mb-3">
-        <BackLink href="/admin" label="Admin" />
-      </div>
+      <PageHeader back={{ href: "/admin", label: "Admin" }} />
 
       <PageTitle>Rooms</PageTitle>
       <Card variant="sheet" className="mt-6">

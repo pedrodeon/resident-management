@@ -41,11 +41,8 @@ export default async function AppLayout({
             second line instead of forcing a horizontal page scroll. */}
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-2 gap-y-1 px-4 py-3 sm:gap-4 sm:px-6">
           <div className="flex items-center gap-2 sm:gap-5">
-            <Link
-              href="/"
-              className="whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.2em] text-white/80 transition-colors hover:text-white sm:text-xs"
-            >
-              Tudor Hall
+            <Link href="/" className={glassPill}>
+              Home
             </Link>
             <Link href="/desk" className={glassPill}>
               Move-in / out

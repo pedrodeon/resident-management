@@ -8,6 +8,7 @@ import type { OccupancyStatus } from "@/lib/types";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { SearchInput } from "@/components/ui/search-input";
 
 export type PersonStay = {
   id: string;
@@ -130,13 +131,11 @@ export function OpenStayFlow({
       <div>
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Find the student</span>
-          <input
-            type="search"
+          <SearchInput
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by name or student ID"
             autoComplete="off"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-base outline-none focus:border-navy focus:ring-2 focus:ring-navy/30"
           />
         </label>
 

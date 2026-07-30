@@ -20,7 +20,9 @@ export type GateResident = {
 const FLOW = {
   move_in: {
     intent: "Check-in",
-    inlineStart: "Move-in inspection",
+    // Intent-first labels (the mockup's "Check in"): step 1 still opens the
+    // move-in inspection — same route, same gate.
+    inlineStart: "Check in",
     inlineDone: "Check in",
     inspectionStep: "move-in inspection",
     event: "check_in" as const,
@@ -28,7 +30,7 @@ const FLOW = {
   },
   move_out: {
     intent: "Check-out",
-    inlineStart: "Move-out inspection",
+    inlineStart: "Check out",
     inlineDone: "Check out",
     inspectionStep: "move-out inspection",
     event: "check_out" as const,

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { BackLink } from "@/components/back-link";
 import type { Rating } from "@/lib/types";
 import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import { PageTitle, SectionLabel } from "@/components/ui/typography";
+import { PageHeader } from "@/components/ui/page-header";
 
 type CheckDetail = {
   id: string;
@@ -51,10 +51,7 @@ export default async function RoomCheckPage({
 
   return (
     <section>
-      {/* Up one level: room-check snapshot → its room. */}
-      <div className="mb-3">
-        <BackLink href={`/rooms/${room.id}`} label={`Room ${room.room_number}`} />
-      </div>
+      <PageHeader back={{ href: `/rooms/${room.id}`, label: `Room ${room.room_number}` }} />
 
       <nav className="text-sm text-white/50">
         <Link href="/" className="hover:text-white hover:underline">

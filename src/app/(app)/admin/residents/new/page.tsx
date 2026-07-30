@@ -1,11 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
-import { BackLink } from "@/components/back-link";
 import { OpenStayFlow, type PersonOption, type RoomChoice } from "@/components/admin/open-stay-flow";
 import { getCurrentTerm } from "@/lib/current-term";
 import type { OccupancyStatus } from "@/lib/types";
 import { Alert } from "@/components/ui/alert";
 import { PageTitle } from "@/components/ui/typography";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 // Every person plus every stay they've had — the picker has to show the RD that
 // this is the same student who lived here last year, which is the whole point of
@@ -90,10 +90,7 @@ export default async function NewStayPage() {
 
   return (
     <section>
-      {/* Up one level: new stay → the residents list. */}
-      <div className="mb-3">
-        <BackLink href="/admin/residents" label="Residents" />
-      </div>
+      <PageHeader back={{ href: "/admin/residents", label: "Residents" }} />
 
       <PageTitle>New or returning student</PageTitle>
       <p className="mt-1 text-sm text-white/60">

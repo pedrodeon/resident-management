@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { BackLink } from "@/components/back-link";
 import { InventoryManager, type AdminItem } from "@/components/admin/inventory-manager";
 import { PageTitle } from "@/components/ui/typography";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function AdminInventoryPage() {
   const supabase = await createClient();
@@ -14,10 +14,7 @@ export default async function AdminInventoryPage() {
 
   return (
     <section>
-      {/* Up one level: section → admin index. */}
-      <div className="mb-3">
-        <BackLink href="/admin" label="Admin" />
-      </div>
+      <PageHeader back={{ href: "/admin", label: "Admin" }} />
 
       <PageTitle>Inventory template</PageTitle>
       <p className="mt-1 text-sm text-gray-500">

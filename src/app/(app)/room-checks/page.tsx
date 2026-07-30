@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { BackLink } from "@/components/back-link";
 import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/button";
 import { PageTitle, SectionLabel } from "@/components/ui/typography";
+import { PageHeader } from "@/components/ui/page-header";
 
 // The weekly room-check workflow's front door (linked from the dashboard
 // tile): every room grouped by hallway, with its most recent check and a
@@ -50,10 +50,7 @@ export default async function RoomChecksIndexPage() {
 
   return (
     <section>
-      {/* Up one level: room-checks index → dashboard. */}
-      <div className="mb-3">
-        <BackLink href="/" label="TUDOR HALL" />
-      </div>
+      <PageHeader back={{ href: "/", label: "TUDOR HALL" }} />
 
       <PageTitle>Room checks</PageTitle>
       <p className="mt-1 text-sm text-white/60">

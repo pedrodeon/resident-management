@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { BackLink } from "@/components/back-link";
 import { InspectionForm } from "@/components/inspection-form";
 import type { CreatableInspectionType, InventoryItem } from "@/lib/types";
 import { PageTitle } from "@/components/ui/typography";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 type RoomRow = {
   id: string;
@@ -64,10 +64,7 @@ export default async function NewInspectionPage({
 
   return (
     <section>
-      {/* Up one level: new-inspection form → its room. */}
-      <div className="mb-3">
-        <BackLink href={`/rooms/${room.id}`} label={`Room ${room.room_number}`} />
-      </div>
+      <PageHeader back={{ href: `/rooms/${room.id}`, label: `Room ${room.room_number}` }} />
 
       <nav className="text-sm text-white/50">
         <Link href="/" className="hover:text-white hover:underline">

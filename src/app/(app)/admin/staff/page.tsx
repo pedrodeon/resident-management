@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { getStaffContext } from "@/lib/auth";
-import { BackLink } from "@/components/back-link";
 import {
   StaffManager,
   type AdminStaff,
@@ -9,6 +8,7 @@ import {
 import type { StaffRole } from "@/lib/types";
 import { PageTitle } from "@/components/ui/typography";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 type StaffRow = {
   id: string;
@@ -42,10 +42,7 @@ export default async function AdminStaffPage() {
 
   return (
     <section>
-      {/* Up one level: section → admin index. */}
-      <div className="mb-3">
-        <BackLink href="/admin" label="Admin" />
-      </div>
+      <PageHeader back={{ href: "/admin", label: "Admin" }} />
 
       <PageTitle>Staff</PageTitle>
       <p className="mt-1 text-sm text-gray-500">

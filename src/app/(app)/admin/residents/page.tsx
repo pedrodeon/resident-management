@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { BackLink } from "@/components/back-link";
 import {
   ResidentsManager,
   type AdminOccupancy,
@@ -9,6 +8,7 @@ import { getCurrentTerm } from "@/lib/current-term";
 import type { OccupancyStatus } from "@/lib/types";
 import { PageTitle } from "@/components/ui/typography";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 // Reads `occupancies` directly, not the current_residents view: this is the one
 // screen that must show archived and past-term stays, since it's where they get
@@ -82,10 +82,7 @@ export default async function AdminResidentsPage() {
 
   return (
     <section>
-      {/* Up one level: section → admin index. */}
-      <div className="mb-3">
-        <BackLink href="/admin" label="Admin" />
-      </div>
+      <PageHeader back={{ href: "/admin", label: "Admin" }} />
 
       <PageTitle>Residents</PageTitle>
       <p className="mt-1 text-sm text-white/60">

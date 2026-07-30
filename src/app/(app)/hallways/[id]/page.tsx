@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { BackLink } from "@/components/back-link";
 import { HallwayRoster, type RosterEntry } from "@/components/hallway-roster";
 import { Card } from "@/components/ui/card";
 import { Avatar, SquareBadge, StatusDot } from "@/components/ui/badge";
 import { PageTitle, SectionLabel } from "@/components/ui/typography";
 import type { Hallway, OccupancyStatus } from "@/lib/types";
+import { PageHeader } from "@/components/ui/page-header";
 
 type RosterResident = {
   id: string;
@@ -72,9 +72,7 @@ export default async function HallwayPage({
   return (
     <section>
       {/* Canvas zone: back, breadcrumb + context, title, coverage. */}
-      <div className="mb-4">
-        <BackLink href="/" label="TUDOR HALL" />
-      </div>
+      <PageHeader back={{ href: "/", label: "TUDOR HALL" }} />
 
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <nav className="text-sm text-white/50">

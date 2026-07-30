@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getStaffContext } from "@/lib/auth";
 import { getCurrentTerm } from "@/lib/current-term";
-import { BackLink } from "@/components/back-link";
 import { StatusChip } from "@/components/ui/status-chip";
 import { OccupancyGate } from "@/components/occupancy-gate";
 import { ReassignRoom, type RoomOption } from "@/components/reassign-room";
@@ -12,6 +11,7 @@ import type { OccupancyStatus } from "@/lib/types";
 import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import { PageTitle, SectionLabel } from "@/components/ui/typography";
+import { PageHeader } from "@/components/ui/page-header";
 
 // The route id is an OCCUPANCY id — one stay. Read from the occupancies table
 // rather than the current_residents view: a past or archived stay must stay
@@ -180,10 +180,7 @@ export default async function ResidentPage({
 
   return (
     <section>
-      {/* Up one level: resident → their room. */}
-      <div className="mb-3">
-        <BackLink href={`/rooms/${room.id}`} label={`Room ${room.room_number}`} />
-      </div>
+      <PageHeader back={{ href: `/rooms/${room.id}`, label: `Room ${room.room_number}` }} />
 
       <nav className="text-sm text-white/50">
         <Link href="/" className="hover:text-white hover:underline">
