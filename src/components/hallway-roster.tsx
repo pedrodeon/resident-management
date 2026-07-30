@@ -3,6 +3,8 @@
 import { useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import { StatusChip } from "@/components/ui/status-chip";
+import { Button } from "@/components/ui/button";
+import { SectionLabel } from "@/components/ui/typography";
 import { togglePresence, bulkSetPresence } from "@/app/(app)/hallways/[id]/actions";
 import type { OccupancyStatus } from "@/lib/types";
 
@@ -60,39 +62,35 @@ export function HallwayRoster({
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+        <SectionLabel>
           Roster
           {checkedIn.length > 0 && (
             <span className="ml-2 font-normal normal-case text-gray-400">
               {awayCount} away / {checkedIn.length} checked in
             </span>
           )}
-        </h2>
+        </SectionLabel>
 
         <div className="flex gap-2 print:hidden">
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => flipAll(true)}
             disabled={isPending || checkedIn.length === 0}
-            className="rounded-md border border-navy px-3 py-1.5 text-xs font-medium text-navy transition-colors hover:bg-navy hover:text-white disabled:opacity-40"
           >
             Mark all present
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => flipAll(false)}
             disabled={isPending || checkedIn.length === 0}
-            className="rounded-md border border-navy px-3 py-1.5 text-xs font-medium text-navy transition-colors hover:bg-navy hover:text-white disabled:opacity-40"
           >
             Mark all away
-          </button>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
-          >
+          </Button>
+          <Button variant="subtle" size="sm" onClick={() => window.print()}>
             Print
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -110,7 +108,7 @@ export function HallwayRoster({
           No residents in this hallway yet.
         </p>
       ) : (
-        <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+        <ul className="mt-2 divide-y divide-gray-100 rounded-xl border border-gray-100 bg-white shadow-sm">
           {optimistic.map((resident) => {
             const away =
               resident.occupancy_status === "checked_in" && !resident.is_present;

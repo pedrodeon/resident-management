@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BackLink } from "@/components/back-link";
 import { HallwayRoster, type RosterEntry } from "@/components/hallway-roster";
+import { CardLink } from "@/components/ui/card";
+import { SquareBadge } from "@/components/ui/badge";
+import { PageTitle, SectionLabel } from "@/components/ui/typography";
 import type { Hallway, OccupancyStatus } from "@/lib/types";
 
 type RosterResident = {
@@ -80,7 +83,7 @@ export default async function HallwayPage({
       </nav>
 
       <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <h1 className="text-2xl font-semibold text-navy">{hallway.name}</h1>
+        <PageTitle>{hallway.name}</PageTitle>
         <span className="text-sm capitalize text-gray-500">
           {hallway.wing} wing · floor {hallway.floor}
         </span>
@@ -91,23 +94,23 @@ export default async function HallwayPage({
         )}
       </div>
 
-      <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-gray-500">
-        Rooms
-      </h2>
-      <ul className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="mt-8">
+        <SectionLabel>Rooms</SectionLabel>
+      </div>
+      {/* Row cards (the dashboard's hallway-row idiom) are wider than the old
+          square tiles, so one fewer column at each break. */}
+      <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {rooms.map((room) => (
           <li key={room.id}>
-            <Link
-              href={`/rooms/${room.id}`}
-              className="block rounded-lg border border-gray-200 bg-white p-4 transition-colors hover:border-navy"
-            >
-              <span className="text-lg font-semibold text-navy">
-                {room.room_number}
-              </span>
-              <p className="mt-1 text-xs text-gray-500">
-                {room.current_residents.length} / {room.capacity} residents
-              </p>
-            </Link>
+            <CardLink variant="row" href={`/rooms/${room.id}`}>
+              <SquareBadge>{room.room_number}</SquareBadge>
+              <div className="min-w-0">
+                <p className="font-bold text-ink">Room {room.room_number}</p>
+                <p className="mt-0.5 truncate text-sm text-gray-500">
+                  {room.current_residents.length} / {room.capacity} residents
+                </p>
+              </div>
+            </CardLink>
           </li>
         ))}
       </ul>
