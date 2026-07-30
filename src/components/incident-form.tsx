@@ -3,21 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
-import { Avatar } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { SearchInput } from "@/components/ui/search-input";
-import { SectionLabel } from "@/components/ui/typography";
 import { submitIncident } from "@/app/(app)/reports/incident/actions";
-
-export type IncidentResident = {
-  /** Occupancy id — what the report is tied to. */
-  id: string;
-  full_name: string;
-  student_id: string;
-  room_id: string;
-  room_label: string; // "Holiday 1 · Room 101"
-};
 
 export type RoomOption = { id: string; label: string };
 
@@ -32,18 +20,14 @@ function nowDefaults() {
 }
 
 export function IncidentForm({
-  residents,
   rooms,
   recipientsHint,
 }: {
-  residents: IncidentResident[];
   rooms: RoomOption[];
   /** e.g. "campus security and Residence Life" — from the page, not the env. */
   recipientsHint: string;
 }) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
-  const [resident, setResident] = useState<IncidentResident | null>(null);
   const [roomId, setRoomId] = useState("");
   const defaults = nowDefaults();
   const [date, setDate] = useState(defaults.date);
@@ -55,31 +39,10 @@ export function IncidentForm({
   const [sent, setSent] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const q = query.trim().toLowerCase();
-  const matches = q
-    ? residents.filter(
-        (r) =>
-          r.full_name.toLowerCase().includes(q) ||
-          r.student_id.toLowerCase().includes(q),
-      )
-    : residents;
-
-  function pick(r: IncidentResident) {
-    setResident(r);
-    // Default the room to the resident's own; still changeable or clearable.
-    setRoomId(r.room_id);
-    setError(null);
-  }
-
   function submit() {
     setError(null);
     startTransition(async () => {
-      if (!resident) {
-        setError("Pick the resident this report is about.");
-        return;
-      }
       const result = await submitIncident({
-        occupancyId: resident.id,
         roomId: roomId || null,
         date,
         time,
@@ -112,72 +75,6 @@ export function IncidentForm({
     <div className="flex flex-col gap-5">
       {error && <Alert tone="error">{error}</Alert>}
 
-      {/* Step 1: who it's about — required, picked from the live roster. */}
-      <div>
-        <SectionLabel>Resident involved</SectionLabel>
-        {resident ? (
-          <div className="mt-3 flex flex-wrap items-center gap-3 rounded-[18px] border border-line bg-white px-3 py-[11px] shadow-[0_2px_6px_rgba(15,29,58,0.05)]">
-            <Avatar name={resident.full_name} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-ink">
-                {resident.full_name}
-              </p>
-              <p className="mt-0.5 truncate text-xs text-muted">
-                {resident.room_label} ·{" "}
-                <span className="font-mono">{resident.student_id}</span>
-              </p>
-            </div>
-            <Button
-              variant="subtle"
-              size="sm"
-              onClick={() => setResident(null)}
-              disabled={isPending}
-            >
-              Change
-            </Button>
-          </div>
-        ) : (
-          <>
-            <SearchInput
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by name or student ID"
-              autoComplete="off"
-              className="mt-3"
-            />
-            {matches.length === 0 ? (
-              <p className="mt-3 text-sm text-muted">
-                No match for &ldquo;{query}&rdquo;.
-              </p>
-            ) : (
-              <ul className="mt-3 flex max-h-72 flex-col gap-2 overflow-y-auto">
-                {matches.map((r) => (
-                  <li key={r.id}>
-                    <button
-                      type="button"
-                      onClick={() => pick(r)}
-                      className="flex w-full items-center gap-3 rounded-[18px] border border-line bg-white px-3 py-[11px] text-left shadow-[0_2px_6px_rgba(15,29,58,0.05)] transition-all hover:border-navy/40"
-                    >
-                      <Avatar name={r.full_name} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-ink">
-                          {r.full_name}
-                        </span>
-                        <span className="mt-0.5 block truncate text-xs text-muted">
-                          {r.room_label} ·{" "}
-                          <span className="font-mono">{r.student_id}</span>
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Step 2: the report. */}
       <Card variant="box">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <label className="flex flex-col gap-1 text-sm">
@@ -261,9 +158,7 @@ export function IncidentForm({
         <Button
           size="lg"
           onClick={submit}
-          disabled={
-            isPending || !resident || !description.trim() || !date || !time
-          }
+          disabled={isPending || !description.trim() || !date || !time}
         >
           {isPending ? "Sending…" : "Send incident report"}
         </Button>

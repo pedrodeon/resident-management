@@ -2,21 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageTitle } from "@/components/ui/typography";
-import {
-  IncidentForm,
-  type IncidentResident,
-  type RoomOption,
-} from "@/components/incident-form";
+import { IncidentForm, type RoomOption } from "@/components/incident-form";
 
 export const metadata = { title: "Incident report — Tudor Hall" };
-
-type ResidentRow = {
-  id: string;
-  full_name: string;
-  student_id: string;
-  room_id: string;
-  rooms: { room_number: string; hallways: { name: string } | null } | null;
-};
 
 type RoomRow = {
   id: string;
@@ -26,28 +14,10 @@ type RoomRow = {
 
 export default async function IncidentReportPage() {
   const supabase = await createClient();
-  const [{ data: residents }, { data: rooms }] = await Promise.all([
-    supabase
-      .from("current_residents")
-      .select(
-        `id, full_name, student_id, room_id,
-         rooms ( room_number, hallways ( name ) )`,
-      )
-      .order("full_name")
-      .overrideTypes<ResidentRow[]>(),
-    supabase
-      .from("rooms")
-      .select(`id, room_number, hallways ( name, sort_order )`)
-      .overrideTypes<RoomRow[]>(),
-  ]);
-
-  const residentOptions: IncidentResident[] = (residents ?? []).map((r) => ({
-    id: r.id,
-    full_name: r.full_name,
-    student_id: r.student_id,
-    room_id: r.room_id,
-    room_label: `${r.rooms?.hallways?.name ?? "?"} · Room ${r.rooms?.room_number ?? "?"}`,
-  }));
+  const { data: rooms } = await supabase
+    .from("rooms")
+    .select(`id, room_number, hallways ( name, sort_order )`)
+    .overrideTypes<RoomRow[]>();
 
   const roomOptions: RoomOption[] = (rooms ?? [])
     .sort(
@@ -71,7 +41,6 @@ export default async function IncidentReportPage() {
 
       <Card variant="sheet" className="mt-6">
         <IncidentForm
-          residents={residentOptions}
           rooms={roomOptions}
           recipientsHint="the configured incident contacts"
         />
