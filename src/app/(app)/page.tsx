@@ -94,8 +94,9 @@ export default async function Dashboard() {
         caption={<>{pct}% of the roster is in the building</>}
       />
 
-      {/* Quick actions — real routes only */}
-      <div className="grid grid-cols-3 gap-3 sm:max-w-lg">
+      {/* Quick actions — five identical tiles, one row on wide screens,
+          wrapping 2-then-3 per row on phones so nothing squishes. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
         <ActionTile href="/desk" label="Check in">
           <CheckIcon />
         </ActionTile>
@@ -107,25 +108,12 @@ export default async function Dashboard() {
         <ActionTile href="/room-checks" label="Room checks">
           <ChecklistIcon />
         </ActionTile>
-      </div>
-
-      {/* Reporting — deliberately quieter than the routine actions above so
-          five buttons don't crowd a phone. */}
-      <div className="grid grid-cols-2 gap-3 sm:max-w-lg">
-        <CardLink
-          variant="glassQuiet"
-          href="/reports/incident"
-          className="text-center text-xs font-medium text-white/80 transition-colors hover:text-white"
-        >
-          Incident report
-        </CardLink>
-        <CardLink
-          variant="glassQuiet"
-          href="/maintenance"
-          className="text-center text-xs font-medium text-white/80 transition-colors hover:text-white"
-        >
-          Maintenance
-        </CardLink>
+        <ActionTile href="/reports/incident" label="Incident report">
+          <AlertTriangleIcon />
+        </ActionTile>
+        <ActionTile href="/maintenance" label="Maintenance">
+          <WrenchIcon />
+        </ActionTile>
       </div>
 
       {/* Hallways card */}
@@ -200,6 +188,36 @@ function SwapIcon() {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
         d="M4 8h13l-3-3m6 11H7l3 3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function AlertTriangleIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M12 9v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 17h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function WrenchIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.77 3.77Z"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
