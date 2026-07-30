@@ -182,26 +182,7 @@ export default async function ResidentPage({
     <section>
       <PageHeader back={{ href: `/rooms/${room.id}`, label: `Room ${room.room_number}` }} />
 
-      <nav className="text-sm text-white/50">
-        <Link href="/" className="hover:text-white hover:underline">
-          TUDOR HALL
-        </Link>{" "}
-        /{" "}
-        {room.hallways && (
-          <>
-            <Link href={`/hallways/${room.hallways.id}`} className="hover:text-white hover:underline">
-              {room.hallways.name}
-            </Link>{" "}
-            /{" "}
-          </>
-        )}
-        <Link href={`/rooms/${room.id}`} className="hover:text-white hover:underline">
-          Room {room.room_number}
-        </Link>{" "}
-        / {person.full_name}
-      </nav>
-
-      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <PageTitle>{person.full_name}</PageTitle>
         <StatusChip status={stay.occupancy_status} isPresent={stay.is_present} />
         <span className="text-sm text-white/60">{stay.term}</span>

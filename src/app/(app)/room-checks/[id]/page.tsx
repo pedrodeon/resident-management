@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Rating } from "@/lib/types";
@@ -53,29 +52,7 @@ export default async function RoomCheckPage({
     <section>
       <PageHeader back={{ href: `/rooms/${room.id}`, label: `Room ${room.room_number}` }} />
 
-      <nav className="text-sm text-white/50">
-        <Link href="/" className="hover:text-white hover:underline">
-          TUDOR HALL
-        </Link>{" "}
-        /{" "}
-        {room.hallways && (
-          <>
-            <Link
-              href={`/hallways/${room.hallways.id}`}
-              className="hover:text-white hover:underline"
-            >
-              {room.hallways.name}
-            </Link>{" "}
-            /{" "}
-          </>
-        )}
-        <Link href={`/rooms/${room.id}`} className="hover:text-white hover:underline">
-          Room {room.room_number}
-        </Link>{" "}
-        / Room check
-      </nav>
-
-      <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <PageTitle>Room check</PageTitle>
         <span className="text-sm text-white/60">
           {new Date(check.timestamp).toLocaleString()}
