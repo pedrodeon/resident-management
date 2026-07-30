@@ -435,11 +435,21 @@ column-level policies. Not worth the complexity in v1.
    `OccupancyGate` / `gateProgress`. An archived or past-term stay renders
    read-only.
 
-8. **Admin (RD only)** — add/edit residents, manage rooms, invite/remove RAs,
-   assign RAs to hallways, edit the inventory item template. The resident form
-   matches on **student ID**: a person we've housed before is reused and a new
-   stay is opened for the current term. Also sets the **current term** and
-   archives/unarchives a stay (the only way `is_archived` becomes true).
+8. **Admin (RD only)** — residents, rooms, staff invites, hallway coverage, the
+   inventory item template, and the **current term**. Also archives/unarchives a
+   stay (the only way `is_archived` becomes true through the app).
+
+9. **New or returning student** (`/admin/residents/new`, RD only) — the one way
+   a resident enters the roster, so the duplicate guard and the archive rule
+   can't diverge across two forms. Search `people` by name or student ID (client
+   side; the query never touches the URL), see each person's existing stays, then
+   open **one new occupancy** — room, term (free text, defaulting to the current
+   term), contacts. A student ID that already exists never creates a second
+   person: the flow says who it matched and switches to them. A person whose
+   previous stay is still `expected`/`checked_in` is refused with an
+   explanation; previous **completed** stays are archived as the new one opens.
+   New stays always start `expected` — only `record_occupancy` moves status, and
+   it holds the signature gate.
 
 ## Suggested build order
 

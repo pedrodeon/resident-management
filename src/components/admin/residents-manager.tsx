@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
-  addResident,
   updateResident,
   deleteOccupancy,
   setOccupancyArchived,
@@ -12,7 +11,7 @@ import {
 } from "@/app/(app)/admin/residents/actions";
 import type { OccupancyStatus } from "@/lib/types";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SectionLabel } from "@/components/ui/typography";
 
@@ -89,29 +88,19 @@ export function ResidentsManager({
         }
       />
 
-      <ResidentFields
-        title="Add a stay"
-        hint="Matched on student ID: if we've housed this person before, their record is reused and a new stay is opened for the current term."
-        rooms={rooms}
-        submitLabel="Add stay"
-        disabled={isPending || !currentTerm}
-        onSubmit={(input, reset) =>
-          run(
-            async () => {
-              const res = await addResident(input);
-              if (res.ok) {
-                setNotice(
-                  res.reusedPerson
-                    ? `${res.personName} already had a person record — added a new stay for ${currentTerm}.`
-                    : `Added ${res.personName} for ${currentTerm}.`,
-                );
-              }
-              return res;
-            },
-            reset,
-          )
-        }
-      />
+      {/* One write path: adding anyone — new or returning — goes through the
+          flow, so the duplicate guard and the archive rule can't diverge
+          between two forms. */}
+      <Card variant="box">
+        <h2 className="text-sm font-semibold">Add a resident</h2>
+        <p className="mt-0.5 text-xs text-gray-500">
+          Search for the student first. A returning student keeps their record
+          and gets a new stay; their old one is never reused.
+        </p>
+        <LinkButton href="/admin/residents/new" className="mt-3 inline-block">
+          New or returning student
+        </LinkButton>
+      </Card>
 
       <StayList
         heading={`${current.length} ${current.length === 1 ? "stay" : "stays"} — ${currentTerm || "no term set"}`}
