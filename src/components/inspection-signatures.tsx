@@ -71,21 +71,22 @@ const MODE_COPY: Record<
 export function InspectionSignatures({
   mode,
   inspectionId,
-  residentId,
+  occupancyId,
   residentName,
   staffName,
   hallwayId,
-  residentStatus,
+  occupancyStatus,
   stored,
   waiver,
 }: {
   mode: Mode;
   inspectionId: string;
-  residentId: string;
+  /** The stay being finalized — inspections and signatures are per-stay. */
+  occupancyId: string;
   residentName: string;
   staffName: string;
   hallwayId: string | null;
-  residentStatus: string;
+  occupancyStatus: string;
   stored: StoredSignature[];
   waiver: StoredWaiver | null;
 }) {
@@ -134,7 +135,7 @@ export function InspectionSignatures({
     setError(null);
     startTransition(async () => {
       const result = await recordOccupancy(
-        residentId,
+        occupancyId,
         copy.finalizeType,
         hallwayId,
       );
@@ -181,7 +182,7 @@ export function InspectionSignatures({
         />
       </div>
 
-      {residentStatus === copy.finalizeStatus && (
+      {occupancyStatus === copy.finalizeStatus && (
         <div className="mt-4">
           {gateSatisfied ? (
             <button
@@ -203,7 +204,7 @@ export function InspectionSignatures({
           )}
         </div>
       )}
-      {residentStatus === copy.doneStatus && (
+      {occupancyStatus === copy.doneStatus && (
         <p className="mt-4 text-sm text-gray-600">
           {residentName} {copy.doneText}
         </p>

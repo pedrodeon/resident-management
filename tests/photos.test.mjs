@@ -134,7 +134,7 @@ describe("create_inspection with photos", () => {
 
     const { data, error } = await ra.rpc("create_inspection", {
       target_room: room.id,
-      target_resident: null,
+      target_occupancy: null,
       inspection_type: "periodic",
       inspection_notes: "photo test suite",
       items: [
@@ -204,7 +204,7 @@ describe("create_inspection with photos", () => {
     // Old-style payload: no `photos` key at all.
     const { data, error } = await ra.rpc("create_inspection", {
       target_room: room.id,
-      target_resident: null,
+      target_occupancy: null,
       inspection_type: "periodic",
       inspection_notes: "no-photos compat test",
       items: [{ item_id: item.id, condition: "good", note: null }],

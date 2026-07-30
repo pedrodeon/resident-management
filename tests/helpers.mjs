@@ -1,9 +1,16 @@
 // Shared setup for the access-control suite.
 //
-// These tests run against the LIVE linked Supabase project using the seeded
-// fake data. They mutate rows and restore them afterwards. A guard below
-// refuses to run unless the known fake seed is present, so the suite can never
-// be pointed at a database holding real resident records.
+// These tests run against a LIVE Supabase project using a fake fixture roster.
+// They mutate rows and restore them afterwards. A guard below refuses to run
+// unless the known fake fixtures are present, so the suite can never be pointed
+// at a database holding real resident records.
+//
+// Since the person/occupancy split, a fixture "resident" is a `people` row plus
+// an `occupancies` row, and every event and inspection keys on the OCCUPANCY id.
+// These helpers hide that: pass a student ID, get back the active stay.
+//
+// Apply supabase/seed-fixtures.sql to a dedicated fixture project first — see
+// docs/SETUP.md.
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -55,15 +62,15 @@ export const RA_EMAIL = "ra1@tudor.test";
 export const RD_EMAIL = "rd@tudor.test";
 
 /**
- * Refuse to run against anything but the fake seed. "Testy McTestface" is
+ * Refuse to run against anything but the fake fixtures. "Testy McTestface" is
  * unmistakably fixture data; if it's absent, this may be a database with real
  * student records and these destructive tests must not touch it.
  */
 export async function assertSeededDevDatabase() {
   const admin = adminClient();
   const { data, error } = await admin
-    .from("residents")
-    .select("full_name")
+    .from("people")
+    .select("full_name, occupancies ( id )")
     .eq("student_id", "S1000101")
     .maybeSingle();
 
@@ -72,22 +79,70 @@ export async function assertSeededDevDatabase() {
   }
   if (!data || data.full_name !== "Testy McTestface") {
     throw new Error(
-      "Seed fixture not found. These tests mutate data and must only run " +
-        "against a seeded dev database — never one holding real resident " +
-        "records. See docs/SETUP.md.",
+      "Fixture roster not found. These tests mutate data and must only run " +
+        "against a fixture database — never one holding real resident " +
+        "records. Apply supabase/seed-fixtures.sql; see docs/SETUP.md.",
+    );
+  }
+  if ((data.occupancies ?? []).length === 0) {
+    throw new Error(
+      "Fixture person S1000101 has no occupancy. Re-apply supabase/seed-fixtures.sql.",
     );
   }
 }
 
-/** Look up a seeded resident by student ID. */
-export async function residentByStudentId(studentId) {
+/** The term the fixtures' active stays live in. */
+export async function currentTerm() {
   const admin = adminClient();
   const { data, error } = await admin
-    .from("residents")
-    .select("id, full_name, room_id, occupancy_status, is_present")
-    .eq("student_id", studentId)
+    .from("app_settings")
+    .select("current_term")
+    .single();
+  if (error) throw new Error(`Could not read app_settings: ${error.message}`);
+  return data.current_term;
+}
+
+/**
+ * The active stay for a fixture student ID: current term, not archived. A person
+ * may have several occupancies, so this picks the live one deliberately rather
+ * than assuming there is only ever one.
+ */
+export async function occupancyByStudentId(studentId) {
+  const admin = adminClient();
+  const term = await currentTerm();
+  const { data, error } = await admin
+    .from("occupancies")
+    .select(
+      `id, person_id, room_id, term, occupancy_status, is_present,
+       people!inner ( full_name, student_id )`,
+    )
+    .eq("people.student_id", studentId)
+    .eq("term", term)
+    .eq("is_archived", false)
     .single();
   if (error) throw new Error(`Fixture ${studentId} missing: ${error.message}`);
+  return {
+    id: data.id, // the OCCUPANCY id — what every RPC and event row keys on
+    person_id: data.person_id,
+    full_name: data.people.full_name,
+    room_id: data.room_id,
+    term: data.term,
+    occupancy_status: data.occupancy_status,
+    is_present: data.is_present,
+  };
+}
+
+/** Look up a fixture person by student ID. */
+export async function personByStudentId(studentId) {
+  const admin = adminClient();
+  const { data, error } = await admin
+    .from("people")
+    .select("id, full_name, student_id, phone, emergency_contact")
+    .eq("student_id", studentId)
+    .single();
+  if (error) {
+    throw new Error(`Fixture person ${studentId} missing: ${error.message}`);
+  }
   return data;
 }
 
@@ -103,23 +158,27 @@ export async function hallwayByName(name) {
   return data;
 }
 
-/** Restore a resident's mutable state (service role bypasses the RD-only RLS). */
-export async function restoreResident(studentId, fields) {
+/**
+ * Restore an active stay's mutable state (service role bypasses the RD-only
+ * RLS). The events written along the way are append-only by design and remain.
+ */
+export async function restoreOccupancy(studentId, fields) {
   const admin = adminClient();
+  const stay = await occupancyByStudentId(studentId);
   const { error } = await admin
-    .from("residents")
+    .from("occupancies")
     .update(fields)
-    .eq("student_id", studentId);
+    .eq("id", stay.id);
   if (error) throw new Error(`Restore failed for ${studentId}: ${error.message}`);
 }
 
-/** Count rows in an append-only event table for one resident. */
-export async function eventCount(table, residentId) {
+/** Count rows in an append-only event table for one stay. */
+export async function eventCount(table, occupancyId) {
   const admin = adminClient();
   const { count, error } = await admin
     .from(table)
     .select("*", { count: "exact", head: true })
-    .eq("resident_id", residentId);
+    .eq("occupancy_id", occupancyId);
   if (error) throw new Error(`Count failed on ${table}: ${error.message}`);
   return count ?? 0;
 }

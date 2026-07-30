@@ -6,7 +6,14 @@ type HallwayRow = {
   id: string;
   name: string;
   sort_order: number;
-  rooms: { id: string; room_number: string; capacity: number; residents: { id: string }[] }[];
+  rooms: {
+    id: string;
+    room_number: string;
+    capacity: number;
+    // Current-term, non-archived stays: an archived past occupant must not
+    // make a room look full.
+    current_residents: { id: string }[];
+  }[];
 };
 
 export default async function AdminRoomsPage() {
@@ -15,7 +22,7 @@ export default async function AdminRoomsPage() {
     .from("hallways")
     .select(
       `id, name, sort_order,
-       rooms ( id, room_number, capacity, residents ( id ) )`,
+       rooms ( id, room_number, capacity, current_residents ( id ) )`,
     )
     .order("sort_order")
     .overrideTypes<HallwayRow[]>();
@@ -29,7 +36,7 @@ export default async function AdminRoomsPage() {
         id: r.id,
         room_number: r.room_number,
         capacity: r.capacity,
-        occupants: r.residents.length,
+        occupants: r.current_residents.length,
       })),
   }));
 

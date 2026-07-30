@@ -11,8 +11,8 @@ import {
   anonClient,
   staffClient,
   assertSeededDevDatabase,
-  residentByStudentId,
-  restoreResident,
+  occupancyByStudentId,
+  restoreOccupancy,
   RA_EMAIL,
   RD_EMAIL,
 } from "./helpers.mjs";
@@ -26,7 +26,7 @@ function sigPath(inspectionId, role) {
   return `signatures/${inspectionId}/${role}-${crypto.randomUUID()}.png`;
 }
 
-async function createMoveOut(residentId, roomId) {
+async function createMoveOut(occupancyId, roomId) {
   const { data: item } = await admin
     .from("inventory_items")
     .select("id")
@@ -35,7 +35,7 @@ async function createMoveOut(residentId, roomId) {
     .single();
   const { data, error } = await ra.rpc("create_inspection", {
     target_room: roomId,
-    target_resident: residentId,
+    target_occupancy: occupancyId,
     inspection_type: "move_out",
     inspection_notes: "move-out signature suite",
     items: [{ item_id: item.id, condition: "good", note: null }],
@@ -50,22 +50,22 @@ before(async () => {
   anon = anonClient();
   ({ client: ra, userId: raId } = await staffClient(RA_EMAIL));
   ({ userId: rdId } = await staffClient(RD_EMAIL));
-  testy = await residentByStudentId(TESTY);
-  danvers = await residentByStudentId(DANVERS);
+  testy = await occupancyByStudentId(TESTY);
+  danvers = await occupancyByStudentId(DANVERS);
   inspTesty = await createMoveOut(testy.id, testy.room_id);
   inspDanvers = await createMoveOut(danvers.id, danvers.room_id);
 });
 
 after(async () => {
   // The check-outs below flip fixture statuses; put them back for other runs.
-  await restoreResident(TESTY, { occupancy_status: "checked_in", is_present: true });
-  await restoreResident(DANVERS, { occupancy_status: "checked_in", is_present: true });
+  await restoreOccupancy(TESTY, { occupancy_status: "checked_in", is_present: true });
+  await restoreOccupancy(DANVERS, { occupancy_status: "checked_in", is_present: true });
 });
 
 describe("the check-out gate, signature path", () => {
   test("rejected with no signatures at all", async () => {
     const { error } = await ra.rpc("record_occupancy", {
-      target_resident: testy.id,
+      target_occupancy: testy.id,
       event_type: "check_out",
     });
     assert.ok(error, "checked out with an unsigned move-out inspection");
@@ -79,7 +79,7 @@ describe("the check-out gate, signature path", () => {
       captured_by: raId,
     });
     const { error } = await ra.rpc("record_occupancy", {
-      target_resident: testy.id,
+      target_occupancy: testy.id,
       event_type: "check_out",
     });
     assert.ok(error, "checked out without the RA signature");
@@ -93,13 +93,13 @@ describe("the check-out gate, signature path", () => {
       captured_by: raId,
     });
     const { error } = await ra.rpc("record_occupancy", {
-      target_resident: testy.id,
+      target_occupancy: testy.id,
       event_type: "check_out",
     });
     assert.equal(error, null, error?.message);
 
     const { data: afterRow } = await admin
-      .from("residents")
+      .from("occupancies")
       .select("occupancy_status")
       .eq("id", testy.id)
       .single();
@@ -116,7 +116,7 @@ describe("the waiver (escape hatch)", () => {
       captured_by: raId,
     });
     const { error } = await ra.rpc("record_occupancy", {
-      target_resident: danvers.id,
+      target_occupancy: danvers.id,
       event_type: "check_out",
     });
     assert.ok(error, "checked out with RA signature but no resident half");
@@ -150,7 +150,7 @@ describe("the waiver (escape hatch)", () => {
       .single();
     const { data: moveInId } = await ra.rpc("create_inspection", {
       target_room: danvers.room_id,
-      target_resident: danvers.id,
+      target_occupancy: danvers.id,
       inspection_type: "move_in",
       inspection_notes: "waiver-rejection probe",
       items: [{ item_id: item.id, condition: "good", note: null }],
@@ -188,7 +188,7 @@ describe("the waiver (escape hatch)", () => {
     assert.equal(waiveErr, null, waiveErr?.message);
 
     const { error } = await ra.rpc("record_occupancy", {
-      target_resident: danvers.id,
+      target_occupancy: danvers.id,
       event_type: "check_out",
     });
     assert.equal(error, null, error?.message);

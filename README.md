@@ -30,14 +30,20 @@ See [CLAUDE.md](CLAUDE.md) for the full product spec and data model.
 - **Room checks** — weekly RA condition ratings per room (floor, trash,
   laundry, overall on a 1–5 scale) with notes and prohibited-items flags,
   recorded append-only from the room page.
-- **Resident detail** — full record plus occupancy, presence, and room-change
-  history.
-- **Admin** (RD only) — residents, rooms, staff invites, hallway coverage, and
-  the inspection template.
+- **Resident detail** — one stay: the person's record, that stay's occupancy,
+  presence and room-change history, and links to their other terms.
+- **Admin** (RD only) — residents, rooms, staff invites, hallway coverage, the
+  inspection template, and the current term.
 
 ## Stack
 
 Next.js (App Router, TypeScript) · Supabase (Postgres, Auth, RLS) · Tailwind.
+
+A resident is a **person** (`people`, once) plus a **stay** (`occupancies`: one
+room, one term). A returning student keeps their person record and gets a new
+stay, so last year's inspections and events stay attached to the term they
+happened in. Everyday screens read the `current_residents` view — current term,
+not archived.
 
 Access control lives in **Postgres RLS**, not the UI. Any staff member can read
 everything; only the RD writes the roster. The three event tables and

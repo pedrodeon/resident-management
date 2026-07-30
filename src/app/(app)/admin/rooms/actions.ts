@@ -47,12 +47,13 @@ export async function updateRoom(
 export async function deleteRoom(id: string): Promise<ActionResult> {
   const supabase = await createClient();
   const { error } = await supabase.from("rooms").delete().eq("id", id);
-  // FK from residents.room_id will block deleting an occupied room — surface it.
+  // FK from occupancies.room_id blocks deleting a room with any stay attached,
+  // including archived ones — surface it.
   if (error) {
     return {
       ok: false,
       error: error.message.includes("foreign key")
-        ? "Can't delete a room that still has residents. Reassign them first."
+        ? "Can't delete a room that still has stays attached — including past or archived ones. Reassign the current residents first."
         : error.message,
     };
   }

@@ -82,14 +82,53 @@ after any change to a policy, grant, `SECURITY DEFINER` function, or the
 login/access guards — they are the only thing that will catch a silently
 widened permission or a reintroduced redirect loop.
 
-They run against the linked project and mutate fixture rows, so they refuse to
-start unless the fake fixture roster is present. **The dev fixtures were
-retired (migration `20260728215914`), so the suite deliberately aborts against
-this database** — to run it, point `.env.local` at a separate fixture project
-seeded with the old fixture roster, or re-seed fixtures knowingly.
+They mutate fixture rows, so they refuse to start unless the fake fixture roster
+is present — a guard against ever pointing them at real resident records. **The
+main project deliberately has no fixtures** (they were retired in migration
+`20260728215914`), so against it the suite aborts by design.
+
+### Running them against a fixture project
+
+1. Create a **second** Supabase project (same dedicated org, same settings as
+   step 2). It holds only invented data.
+2. Apply the schema and the building structure to it:
+
+   ```sh
+   npx supabase link --project-ref <fixture-ref>
+   npx supabase db push --include-seed
+   npm run seed:staff
+   ```
+
+3. Load the fake roster — 24 invented people with one active stay each:
+
+   ```bash
+   psql "<fixture connection string>" -f supabase/seed-fixtures.sql
+   ```
+
+   (Or paste the file into that project's SQL editor.) It's idempotent and ends
+   with a check block that fails loudly if the invariants the suite asserts —
+   exactly 3 checked-in stays in Holiday 1, ≥20 stays, no presence events for
+   `S1000104` — aren't met.
+
+4. Point `.env.local` at the fixture project's URL and keys, then `npm test`.
+   **Relink to the main project afterwards** (`npx supabase link --project-ref
+   <main-ref>`), or a later `db push` will land in the wrong place.
+
+A fixture project drifts as the suite runs (events are append-only, so they
+accumulate). If the counts stop matching, delete the project and redo this —
+that's cheaper than unpicking it.
 
 ## Notes for later
 
+- **The current term** lives in the single-row `app_settings` table, seeded
+  `Fall 2026`. Everyday screens show only that term's non-archived occupancies
+  (via the `current_residents` view), so rolling over a semester is an RD form
+  field — Admin → Residents → Current term — not a deploy or a delete.
+- **Rolling back the person/occupancy split:** `supabase/rollback/` holds a
+  reviewed down script. It is not part of the migration sequence and running it
+  also means deleting that version's row from
+  `supabase_migrations.schema_migrations`. The pre-split table survives as
+  `residents_pre_split` (service-role read only).
 - **Adding a table?** With "automatically expose new tables" off, a new table
   gets no grants at all. Every migration that adds one must `grant` explicitly
   to `authenticated` (and `service_role` where a script needs it) — an RLS

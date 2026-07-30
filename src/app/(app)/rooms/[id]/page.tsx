@@ -14,7 +14,8 @@ type RoomDetail = {
   room_number: string;
   capacity: number;
   hallways: { id: string; name: string } | null;
-  residents: {
+  /** Current-term, non-archived stays only; `id` is the occupancy id. */
+  current_residents: {
     id: string;
     full_name: string;
     student_id: string;
@@ -52,7 +53,7 @@ export default async function RoomPage({
         .select(
           `id, room_number, capacity,
            hallways ( id, name ),
-           residents ( id, full_name, student_id, occupancy_status, is_present )`,
+           current_residents ( id, full_name, student_id, occupancy_status, is_present )`,
         )
         .eq("id", id)
         .single()
@@ -109,20 +110,20 @@ export default async function RoomPage({
           Room {room.room_number}
         </h1>
         <span className="text-sm text-gray-500">
-          {room.residents.length} / {room.capacity} residents
+          {room.current_residents.length} / {room.capacity} residents
         </span>
       </div>
 
       <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-gray-500">
         Residents
       </h2>
-      {room.residents.length === 0 ? (
+      {room.current_residents.length === 0 ? (
         <p className="mt-2 text-sm text-gray-500">This room is empty.</p>
       ) : (
         <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
           {/* Whole row is the tap target — check-in/out lives on the
               resident's own screen. */}
-          {room.residents.map((resident) => (
+          {room.current_residents.map((resident) => (
             <li key={resident.id}>
               <Link
                 href={`/residents/${resident.id}`}

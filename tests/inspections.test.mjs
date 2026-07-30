@@ -58,7 +58,7 @@ describe("create_inspection", () => {
 
     const { data, error } = await ra.rpc("create_inspection", {
       target_room: roomId,
-      target_resident: null,
+      target_occupancy: null,
       inspection_type: "periodic",
       inspection_notes: "created by the test suite",
       items,

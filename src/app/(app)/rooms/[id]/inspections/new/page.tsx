@@ -9,7 +9,8 @@ type RoomRow = {
   id: string;
   room_number: string;
   hallways: { id: string; name: string } | null;
-  residents: { id: string; full_name: string }[];
+  /** `id` is the occupancy id — the stay this snapshot will be bound to. */
+  current_residents: { id: string; full_name: string }[];
 };
 
 // Periodic is no longer creatable — routine weekly checks are room_checks.
@@ -32,7 +33,7 @@ export default async function NewInspectionPage({
       .select(
         `id, room_number,
          hallways ( id, name ),
-         residents ( id, full_name )`,
+         current_residents ( id, full_name )`,
       )
       .eq("id", id)
       .single()
@@ -53,9 +54,9 @@ export default async function NewInspectionPage({
       ? (type as CreatableInspectionType)
       : "move_in";
 
-  // Preselect a resident when the desk sent us here — only if the id really
+  // Preselect a resident when the desk sent us here — only if that stay really
   // belongs to this room.
-  const defaultResidentId = room.residents.some((r) => r.id === resident)
+  const defaultResidentId = room.current_residents.some((r) => r.id === resident)
     ? resident
     : undefined;
 
@@ -96,7 +97,7 @@ export default async function NewInspectionPage({
         <InspectionForm
           roomId={room.id}
           roomNumber={room.room_number}
-          residents={room.residents}
+          residents={room.current_residents}
           template={template ?? []}
           defaultType={defaultType}
           defaultResidentId={defaultResidentId}

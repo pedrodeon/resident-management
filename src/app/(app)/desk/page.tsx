@@ -4,6 +4,8 @@ import { DeskConsole, type DeskResident } from "@/components/desk-console";
 import { gateProgress } from "@/lib/occupancy-gate";
 import type { OccupancyStatus } from "@/lib/types";
 
+// A row of the current_residents view: `id` is the occupancy id, which is also
+// what the inspections embed and every RPC key on.
 type ResidentRow = {
   id: string;
   full_name: string;
@@ -27,7 +29,7 @@ export const metadata = { title: "Move-in / Move-out — Tudor Hall" };
 export default async function DeskPage() {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("residents")
+    .from("current_residents")
     .select(
       `id, full_name, student_id, room_id, occupancy_status,
        rooms ( room_number, hallways ( id, name ) ),

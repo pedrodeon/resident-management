@@ -8,10 +8,10 @@ import {
   adminClient,
   staffClient,
   assertSeededDevDatabase,
-  residentByStudentId,
+  occupancyByStudentId,
   hallwayByName,
   eventCount,
-  restoreResident,
+  restoreOccupancy,
   RA_EMAIL,
   RD_EMAIL,
 } from "./helpers.mjs";
@@ -26,7 +26,7 @@ before(async () => {
   ({ client: ra } = await staffClient(RA_EMAIL));
   ({ client: rd, userId: rdId } = await staffClient(RD_EMAIL));
 
-  petit = await residentByStudentId(PETIT);
+  petit = await occupancyByStudentId(PETIT);
   originalRoomId = petit.room_id;
 
   const holiday1 = await hallwayByName("Holiday 1");
@@ -38,20 +38,20 @@ before(async () => {
 });
 
 after(async () => {
-  await restoreResident(PETIT, { room_id: originalRoomId });
+  await restoreOccupancy(PETIT, { room_id: originalRoomId });
 });
 
 describe("reassign_room", () => {
   test("an RA cannot reassign rooms", async () => {
     const { error } = await ra.rpc("reassign_room", {
-      target_resident: petit.id,
+      target_occupancy: petit.id,
       to_room: otherRoomId,
       reason: "should be rejected",
     });
     assert.ok(error, "an RA reassigned a room");
 
     const { data: after } = await admin
-      .from("residents")
+      .from("occupancies")
       .select("room_id")
       .eq("id", petit.id)
       .single();
@@ -62,14 +62,14 @@ describe("reassign_room", () => {
     const before = await eventCount("room_change_events", petit.id);
 
     const { error } = await rd.rpc("reassign_room", {
-      target_resident: petit.id,
+      target_occupancy: petit.id,
       to_room: otherRoomId,
       reason: "test suite",
     });
     assert.equal(error, null, error?.message);
 
     const { data: after } = await admin
-      .from("residents")
+      .from("occupancies")
       .select("room_id")
       .eq("id", petit.id)
       .single();
@@ -85,7 +85,7 @@ describe("reassign_room", () => {
     const { data: event } = await admin
       .from("room_change_events")
       .select("from_room_id, to_room_id, changed_by, reason")
-      .eq("resident_id", petit.id)
+      .eq("occupancy_id", petit.id)
       .order("timestamp", { ascending: false })
       .limit(1)
       .single();
@@ -98,7 +98,7 @@ describe("reassign_room", () => {
 
   test("reassigning to the same room is rejected", async () => {
     const { error } = await rd.rpc("reassign_room", {
-      target_resident: petit.id,
+      target_occupancy: petit.id,
       to_room: otherRoomId,
     });
     assert.ok(error, "a no-op reassignment was recorded");
@@ -106,7 +106,7 @@ describe("reassign_room", () => {
 
   test("the audit trail cannot be written directly", async () => {
     const { error } = await rd.from("room_change_events").insert({
-      resident_id: petit.id,
+      occupancy_id: petit.id,
       from_room_id: originalRoomId,
       to_room_id: otherRoomId,
     });
@@ -118,7 +118,7 @@ describe("reassign_room", () => {
     const { data, error } = await ra
       .from("room_change_events")
       .select("id")
-      .eq("resident_id", petit.id);
+      .eq("occupancy_id", petit.id);
     assert.equal(error, null, error?.message);
     assert.ok(data.length > 0, "an RA could not read room-change history");
   });

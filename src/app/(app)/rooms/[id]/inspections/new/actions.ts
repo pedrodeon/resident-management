@@ -15,7 +15,8 @@ export type InspectionItemInput = {
 
 export type CreateInspectionInput = {
   roomId: string;
-  residentId: string | null;
+  /** The stay this snapshot brackets — move-in and move-out are per-stay. */
+  occupancyId: string | null;
   /** Move-in or move-out only — periodic inspections are no longer created. */
   type: CreatableInspectionType;
   notes: string;
@@ -33,7 +34,7 @@ export async function createInspection(
   const supabase = await createClient();
   const { data: inspectionId, error } = await supabase.rpc("create_inspection", {
     target_room: input.roomId,
-    target_resident: input.residentId,
+    target_occupancy: input.occupancyId,
     inspection_type: input.type,
     inspection_notes: input.notes.trim() || null,
     items: input.items.map((i) => ({

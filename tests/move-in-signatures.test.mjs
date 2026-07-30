@@ -11,7 +11,7 @@ import {
   anonClient,
   staffClient,
   assertSeededDevDatabase,
-  residentByStudentId,
+  occupancyByStudentId,
   RA_EMAIL,
   RD_EMAIL,
 } from "./helpers.mjs";
@@ -31,7 +31,7 @@ before(async () => {
   ({ client: ra, userId: raId } = await staffClient(RA_EMAIL));
   ({ userId: rdId } = await staffClient(RD_EMAIL));
 
-  const testy = await residentByStudentId(TESTY);
+  const testy = await occupancyByStudentId(TESTY);
   roomId = testy.room_id;
   const { data: item } = await admin
     .from("inventory_items")
@@ -43,14 +43,14 @@ before(async () => {
   // One move-in inspection (signable) and one periodic (not signable).
   ({ data: moveInId } = await ra.rpc("create_inspection", {
     target_room: roomId,
-    target_resident: testy.id,
+    target_occupancy: testy.id,
     inspection_type: "move_in",
     inspection_notes: "signature suite",
     items: [{ item_id: item.id, condition: "good", note: null }],
   }));
   ({ data: periodicId } = await ra.rpc("create_inspection", {
     target_room: roomId,
-    target_resident: null,
+    target_occupancy: null,
     inspection_type: "periodic",
     inspection_notes: "signature suite (unsignable)",
     items: [{ item_id: item.id, condition: "good", note: null }],

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getStaffContext } from "@/lib/auth";
+import { getCurrentTerm } from "@/lib/current-term";
 import { BackLink } from "@/components/back-link";
 import { StatusChip } from "@/components/status-chip";
 import { OccupancyGate } from "@/components/occupancy-gate";
@@ -9,16 +10,36 @@ import { ReassignRoom, type RoomOption } from "@/components/reassign-room";
 import { gateProgress, type GateInspection } from "@/lib/occupancy-gate";
 import type { OccupancyStatus } from "@/lib/types";
 
-type ResidentDetail = {
+// The route id is an OCCUPANCY id — one stay. Read from the occupancies table
+// rather than the current_residents view: a past or archived stay must stay
+// reachable, because that's where dispute history lives.
+type StayDetail = {
   id: string;
-  full_name: string;
-  student_id: string;
-  phone: string | null;
-  emergency_contact: string | null;
+  term: string;
   occupancy_status: OccupancyStatus;
   is_present: boolean;
+  is_archived: boolean;
   room_id: string;
-  rooms: { id: string; room_number: string; hallways: { id: string; name: string } | null } | null;
+  people: {
+    id: string;
+    full_name: string;
+    student_id: string;
+    phone: string | null;
+    emergency_contact: string | null;
+    // Every stay this person has had, this one included.
+    occupancies: {
+      id: string;
+      term: string;
+      occupancy_status: OccupancyStatus;
+      is_archived: boolean;
+      rooms: { room_number: string; hallways: { name: string } | null } | null;
+    }[];
+  } | null;
+  rooms: {
+    id: string;
+    room_number: string;
+    hallways: { id: string; name: string } | null;
+  } | null;
   inspections: GateInspection[];
 };
 
@@ -45,6 +66,12 @@ type RoomChangeRow = {
   users: { name: string } | null;
 };
 
+const STATUS_LABEL: Record<OccupancyStatus, string> = {
+  expected: "expected",
+  checked_in: "checked in",
+  checked_out: "checked out",
+};
+
 function fmt(ts: string) {
   return new Date(ts).toLocaleString();
 }
@@ -60,34 +87,37 @@ export default async function ResidentPage({
   const isRd = staff?.role === "rd";
 
   const [
-    { data: resident, error },
+    { data: stay, error },
     { data: occupancy },
     { data: presence },
     { data: roomChanges },
     { data: rooms },
+    currentTerm,
   ] = await Promise.all([
     supabase
-      .from("residents")
+      .from("occupancies")
       .select(
-        `id, full_name, student_id, phone, emergency_contact,
-         occupancy_status, is_present, room_id,
+        `id, term, occupancy_status, is_present, is_archived, room_id,
+         people ( id, full_name, student_id, phone, emergency_contact,
+                  occupancies ( id, term, occupancy_status, is_archived,
+                                rooms ( room_number, hallways ( name ) ) ) ),
          rooms ( id, room_number, hallways ( id, name ) ),
          inspections ( id, type, inspection_signatures ( role ),
                        inspection_signature_waivers ( id ) )`,
       )
       .eq("id", id)
       .single()
-      .overrideTypes<ResidentDetail>(),
+      .overrideTypes<StayDetail>(),
     supabase
       .from("occupancy_events")
       .select(`id, type, timestamp, note, users:recorded_by ( name )`)
-      .eq("resident_id", id)
+      .eq("occupancy_id", id)
       .order("timestamp", { ascending: false })
       .overrideTypes<OccupancyRow[]>(),
     supabase
       .from("presence_events")
       .select(`id, status, timestamp, note, users:recorded_by ( name )`)
-      .eq("resident_id", id)
+      .eq("occupancy_id", id)
       .order("timestamp", { ascending: false })
       .overrideTypes<PresenceRow[]>(),
     supabase
@@ -98,7 +128,7 @@ export default async function ResidentPage({
          to_room:to_room_id ( room_number ),
          users:changed_by ( name )`,
       )
-      .eq("resident_id", id)
+      .eq("occupancy_id", id)
       .order("timestamp", { ascending: false })
       .overrideTypes<RoomChangeRow[]>(),
     // Room list for reassignment (RD only needs it, but cheap to always load).
@@ -108,23 +138,33 @@ export default async function ResidentPage({
           .select(`id, room_number, hallways ( name )`)
           .order("room_number")
       : Promise.resolve({ data: null }),
+    getCurrentTerm(),
   ]);
 
-  if (error || !resident || !resident.rooms) notFound();
+  if (error || !stay || !stay.rooms || !stay.people) notFound();
 
-  const room = resident.rooms;
+  const room = stay.rooms;
+  const person = stay.people;
+  const otherStays = person.occupancies
+    .filter((o) => o.id !== stay.id)
+    .sort((a, b) => b.term.localeCompare(a.term));
 
-  // For the occupancy action and the completed state.
+  // A stay outside the current term, or archived, is read-only history: the
+  // occupancy action would be meaningless, and set_presence refuses archived
+  // stays anyway.
+  const isHistoric =
+    stay.is_archived || (currentTerm !== null && stay.term !== currentTerm);
+
   const gateResident = {
-    id: resident.id,
-    full_name: resident.full_name,
-    room_id: resident.room_id,
+    id: stay.id,
+    full_name: person.full_name,
+    room_id: stay.room_id,
     hallway_id: room.hallways?.id ?? null,
   };
   const lastCheckOut = (occupancy ?? []).find((e) => e.type === "check_out")
     ?.timestamp;
   const moveOutInspectionId = gateProgress(
-    resident.inspections,
+    stay.inspections,
     "move_out",
   )?.inspectionId;
 
@@ -158,19 +198,29 @@ export default async function ResidentPage({
         <Link href={`/rooms/${room.id}`} className="hover:text-navy hover:underline">
           Room {room.room_number}
         </Link>{" "}
-        / {resident.full_name}
+        / {person.full_name}
       </nav>
 
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-        <h1 className="text-2xl font-semibold text-navy">{resident.full_name}</h1>
-        <StatusChip status={resident.occupancy_status} isPresent={resident.is_present} />
+        <h1 className="text-2xl font-semibold text-navy">{person.full_name}</h1>
+        <StatusChip status={stay.occupancy_status} isPresent={stay.is_present} />
+        <span className="text-sm text-gray-500">{stay.term}</span>
       </div>
 
-      {/* Record */}
+      {isHistoric && (
+        <p className="mt-3 rounded-md border-l-4 border-accent bg-accent-soft px-3 py-2 text-sm text-ink">
+          {stay.is_archived
+            ? "This stay is archived."
+            : `This stay is from ${stay.term}, not the current term.`}{" "}
+          It&rsquo;s kept for history and can&rsquo;t be acted on.
+        </p>
+      )}
+
+      {/* Record — contacts belong to the person, room and status to the stay. */}
       <dl className="mt-4 grid grid-cols-1 gap-x-8 gap-y-2 rounded-lg border border-gray-200 bg-white p-4 text-sm sm:grid-cols-2">
         <div className="flex justify-between gap-4">
           <dt className="text-gray-500">Student ID</dt>
-          <dd className="font-mono">{resident.student_id}</dd>
+          <dd className="font-mono">{person.student_id}</dd>
         </div>
         <div className="flex justify-between gap-4">
           <dt className="text-gray-500">Room</dt>
@@ -180,73 +230,106 @@ export default async function ResidentPage({
         </div>
         <div className="flex justify-between gap-4">
           <dt className="text-gray-500">Phone</dt>
-          <dd>{resident.phone ?? "—"}</dd>
+          <dd>{person.phone ?? "—"}</dd>
         </div>
         <div className="flex justify-between gap-4">
           <dt className="text-gray-500">Emergency contact</dt>
-          <dd>{resident.emergency_contact ?? "—"}</dd>
+          <dd>{person.emergency_contact ?? "—"}</dd>
         </div>
       </dl>
 
-      {/* Occupancy — the per-resident check-in / check-out action, driven by
-          this resident's status. It also owns the move-in / move-out
-          inspections, since each brackets one resident's stay; weekly room
-          checks stay on the room screen. */}
-      <div className="mt-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-          Occupancy
-        </h2>
-        <div className="mt-2 rounded-lg border border-gray-200 bg-white p-4">
-          {resident.occupancy_status === "expected" && (
-            <OccupancyGate
-              variant="primary"
-              flow="move_in"
-              progress={gateProgress(resident.inspections, "move_in")}
-              resident={gateResident}
-            />
-          )}
-          {resident.occupancy_status === "checked_in" && (
-            <OccupancyGate
-              variant="primary"
-              flow="move_out"
-              progress={gateProgress(resident.inspections, "move_out")}
-              resident={gateResident}
-            />
-          )}
-          {resident.occupancy_status === "checked_out" && (
-            <div className="text-sm">
-              <p className="font-medium text-gray-700">
-                Checked out
-                {lastCheckOut ? ` ${fmt(lastCheckOut)}` : ""}.
-              </p>
-              <p className="mt-1 text-xs text-gray-500">
-                This resident&rsquo;s stay is complete. Re-admitting them is a
-                roster change, not a check-in.
-              </p>
-              {moveOutInspectionId && (
-                <Link
-                  href={`/inspections/${moveOutInspectionId}`}
-                  className="mt-2 inline-block text-xs font-medium text-navy hover:underline"
-                >
-                  View move-out inspection →
-                </Link>
-              )}
-            </div>
-          )}
+      {/* Occupancy — the per-stay check-in / check-out action, driven by this
+          stay's status. It also owns the move-in / move-out inspections, since
+          each brackets one stay; weekly room checks stay on the room screen. */}
+      {!isHistoric && (
+        <div className="mt-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+            Occupancy
+          </h2>
+          <div className="mt-2 rounded-lg border border-gray-200 bg-white p-4">
+            {stay.occupancy_status === "expected" && (
+              <OccupancyGate
+                variant="primary"
+                flow="move_in"
+                progress={gateProgress(stay.inspections, "move_in")}
+                resident={gateResident}
+              />
+            )}
+            {stay.occupancy_status === "checked_in" && (
+              <OccupancyGate
+                variant="primary"
+                flow="move_out"
+                progress={gateProgress(stay.inspections, "move_out")}
+                resident={gateResident}
+              />
+            )}
+            {stay.occupancy_status === "checked_out" && (
+              <div className="text-sm">
+                <p className="font-medium text-gray-700">
+                  Checked out
+                  {lastCheckOut ? ` ${fmt(lastCheckOut)}` : ""}.
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  This stay is complete. If they come back, the RD opens a new
+                  stay for the new term — this one is never reopened.
+                </p>
+                {moveOutInspectionId && (
+                  <Link
+                    href={`/inspections/${moveOutInspectionId}`}
+                    className="mt-2 inline-block text-xs font-medium text-navy hover:underline"
+                  >
+                    View move-out inspection →
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {isRd && (
+      {isRd && !isHistoric && (
         <div className="mt-4">
           <ReassignRoom
-            residentId={resident.id}
-            currentRoomId={resident.room_id}
+            occupancyId={stay.id}
+            currentRoomId={stay.room_id}
             rooms={roomOptions}
           />
         </div>
       )}
 
-      {/* Histories */}
+      {/* Other stays — the payoff of the split: the same person's other terms,
+          each with its own inspections and events still intact. */}
+      <div className="mt-8">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+          Other stays
+        </h2>
+        {otherStays.length === 0 ? (
+          <p className="mt-2 text-sm text-gray-500">
+            This is {person.full_name}&rsquo;s only stay on record.
+          </p>
+        ) : (
+          <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+            {otherStays.map((other) => (
+              <li key={other.id}>
+                <Link
+                  href={`/residents/${other.id}`}
+                  className="flex flex-wrap items-baseline justify-between gap-x-3 px-4 py-2.5 hover:bg-gray-50"
+                >
+                  <span className="text-sm font-medium">{other.term}</span>
+                  <span className="text-xs text-gray-500">
+                    {other.rooms?.hallways?.name ?? "?"} · Room{" "}
+                    {other.rooms?.room_number ?? "?"} ·{" "}
+                    {STATUS_LABEL[other.occupancy_status]}
+                    {other.is_archived ? " · archived" : ""}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Histories — all three scoped to THIS stay. */}
       <History
         title="Occupancy history"
         empty="No check-in / check-out yet."

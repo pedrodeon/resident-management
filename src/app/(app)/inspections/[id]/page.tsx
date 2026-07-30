@@ -18,7 +18,15 @@ type InspectionDetail = {
   timestamp: string;
   notes: string | null;
   rooms: { id: string; room_number: string; hallways: { id: string; name: string } | null } | null;
-  residents: { id: string; full_name: string; occupancy_status: string } | null;
+  // The occupancies TABLE, not the current_residents view: a dispute may be
+  // read years later, when that stay is archived or from a past term, and the
+  // snapshot must still name who it was about.
+  occupancies: {
+    id: string;
+    occupancy_status: string;
+    term: string;
+    people: { full_name: string } | null;
+  } | null;
   users: { name: string } | null;
   inspection_signatures: {
     role: SignatureRole;
@@ -57,7 +65,7 @@ export default async function InspectionPage({
     .select(
       `id, type, timestamp, notes,
        rooms ( id, room_number, hallways ( id, name ) ),
-       residents ( id, full_name, occupancy_status ),
+       occupancies ( id, occupancy_status, term, people ( full_name ) ),
        users:inspected_by ( name ),
        inspection_signatures ( role, storage_path, signed_at ),
        inspection_signature_waivers ( reason, created_at, users:waived_by ( name ) ),
@@ -71,12 +79,14 @@ export default async function InspectionPage({
 
   if (error || !inspection || !inspection.rooms) notFound();
 
-  // The attestation step applies to move-in and move-out inspections tied to
-  // a resident. The gate: RA signature AND (resident signature OR, for
-  // move-out only, a recorded waiver).
+  // The attestation step applies to move-in and move-out inspections tied to a
+  // stay. The gate: RA signature AND (resident signature OR, for move-out only,
+  // a recorded waiver).
+  const stay = inspection.occupancies;
+  const residentName = stay?.people?.full_name ?? null;
   const signable =
     (inspection.type === "move_in" || inspection.type === "move_out") &&
-    inspection.residents !== null;
+    stay !== null;
   const staff = signable ? await getStaffContext() : null;
   const waiverRow = inspection.inspection_signature_waivers;
   const roles = new Set(inspection.inspection_signatures.map((s) => s.role));
@@ -154,7 +164,8 @@ export default async function InspectionPage({
       </div>
       <p className="mt-1 text-sm text-gray-500">
         Room {room.room_number}
-        {inspection.residents ? ` · ${inspection.residents.full_name}` : ""}
+        {residentName ? ` · ${residentName}` : ""}
+        {stay ? ` · ${stay.term}` : ""}
         {inspection.users ? ` · by ${inspection.users.name}` : ""}
       </p>
 
@@ -210,15 +221,15 @@ export default async function InspectionPage({
 
       {/* Attestations: resident + RA sign against this exact snapshot; the
           check-in / check-out cannot be finalized until the gate is met. */}
-      {signable && inspection.residents && (
+      {signable && stay && (
         <InspectionSignatures
           mode={inspection.type as "move_in" | "move_out"}
           inspectionId={inspection.id}
-          residentId={inspection.residents.id}
-          residentName={inspection.residents.full_name}
+          occupancyId={stay.id}
+          residentName={residentName ?? "the resident"}
           staffName={staff?.name ?? "RA"}
           hallwayId={room.hallways?.id ?? null}
-          residentStatus={inspection.residents.occupancy_status}
+          occupancyStatus={stay.occupancy_status}
           stored={inspection.inspection_signatures.flatMap(
             (s): StoredSignature[] => {
               const url = signedByPath.get(s.storage_path);

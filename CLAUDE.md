@@ -156,32 +156,72 @@ Seeded with the 84 real Tudor Hall rooms (all capacity 2), unique per
 Holiday 1 = 9, Lebanon 1 = 9, Holiday 2A = 11, Holiday 2B = 12,
 Lebanon 2 = 10, Holiday 3A = 11, Holiday 3B = 12, Lebanon 3 = 10.
 
-### residents (records, not accounts)
+### app_settings (single row)
+- `id` (boolean, pk, always true) — enforces exactly one row
+- `current_term` (text) — e.g. "Fall 2026"
+- `updated_at` (timestamptz)
+
+The term everyday screens are scoped to, and the term new occupancies open in.
+It lives in the database, not an env var, so the `current_residents` view and
+`set_presence_bulk` filter on the same value the app writes. RD-writable
+(Admin → Residents → Current term); rolling over a semester deletes nothing.
+
+### people (the person, once — records, not accounts)
 - `id` (uuid, pk)
 - `full_name` (text)
-- `student_id` (text) — displayed on the room detail screen
-- `room_id` (uuid, fk → rooms)
+- `student_id` (text, unique) — the identity key; displayed on room detail
 - `phone` (text, nullable)
 - `emergency_contact` (text, nullable)
+- `created_at`, `updated_at` (timestamptz)
+
+### occupancies (one person, one room, one term)
+- `id` (uuid, pk)
+- `person_id` (uuid, fk → people, on delete cascade)
+- `room_id` (uuid, fk → rooms) — mutable *within* a stay; a mid-term move is a
+  `reassign_room` call recorded in `room_change_events`, not a new occupancy
+- `term` (text) — free text, e.g. "Fall 2026". Not an enum: terms are named by
+  Residence Life, not by a migration
 - `occupancy_status` (enum: `expected` | `checked_in` | `checked_out`) — cache;
-  source of truth is the latest `occupancy_events` row. Everyone starts as
-  `expected` when added to the roster before move-in.
-- `is_present` (boolean, default true) — THE LIVE TOGGLE. Source of truth for
-  "are they in the building right now." Only meaningful while `checked_in`.
+  source of truth is the latest `occupancy_events` row for this stay. A new stay
+  starts `expected`
+- `is_present` (boolean, default true) — THE LIVE TOGGLE, per stay. Source of
+  truth for "are they in the building right now." Only meaningful while
+  `checked_in`
+- `is_archived` (boolean, default false) — hidden, never deleted
+- `created_at`, `updated_at` (timestamptz)
+
+**A returning student is the same `people` row plus a NEW occupancy** — possibly
+a different room. An old occupancy is never reused or reset, because the
+inspections and events hanging off it are the record a damage dispute rests on.
+A partial unique index allows only one *active* stay per person
+(`where is_archived = false and occupancy_status <> 'checked_out'`), so history
+and re-admission are both possible but nobody can be live in two rooms.
+
+**Archived = hidden, not deleted.** Everyday screens (dashboard, hallway, room
+detail, desk) read the `current_residents` view — current term, not archived —
+so the filter lives in one place in the database instead of in every query.
+Archived and past-term stays stay fully queryable: the RD sees them under
+Admin → Residents, and a resident's screen links each person's other stays.
+
+Pre-split, one `residents` table conflated the person with the stay. Migration
+`20260729221553_person_occupancy_split` split it, preserving primary keys
+(`occupancies.id` = the old `residents.id`) so every child row kept its exact
+FK value. The old table survives as `residents_pre_split`, service-role read
+only, and `supabase/rollback/` holds the down script.
 
 ### occupancy_events (semester move-in / move-out log)
 - `id` (uuid, pk)
-- `resident_id` (uuid, fk → residents)
+- `occupancy_id` (uuid, fk → occupancies)
 - `type` (enum: `check_in` | `check_out`)
 - `timestamp` (timestamptz, default now())
 - `recorded_by` (uuid, fk → users)
 - `note` (text, nullable)
 
-~2 rows per resident per semester. Append-only.
+~2 rows per stay. Append-only.
 
 ### presence_events (break toggle history)
 - `id` (uuid, pk)
-- `resident_id` (uuid, fk → residents)
+- `occupancy_id` (uuid, fk → occupancies)
 - `status` (enum: `away` | `returned`)
 - `timestamp` (timestamptz, default now())
 - `recorded_by` (uuid, fk → users)
@@ -192,7 +232,7 @@ Thanksgiving?" after the fact. Append-only.
 
 ### room_change_events (RD-only room reassignments)
 - `id` (uuid, pk)
-- `resident_id` (uuid, fk → residents)
+- `occupancy_id` (uuid, fk → occupancies)
 - `from_room_id` (uuid, fk → rooms, nullable)
 - `to_room_id` (uuid, fk → rooms)
 - `timestamp` (timestamptz, default now())
@@ -216,9 +256,10 @@ migration.
 ### inspections (a dated condition SNAPSHOT of one room)
 - `id` (uuid, pk)
 - `room_id` (uuid, fk → rooms)
-- `resident_id` (uuid, fk → residents, nullable) — every inspection created
-  now names a resident; nullable only because legacy `periodic` rows predate
-  that rule
+- `occupancy_id` (uuid, fk → occupancies, nullable) — inspections attach to a
+  STAY, not a person, so a snapshot stays pinned to the term it was taken in.
+  Every inspection created now names one; nullable only because legacy
+  `periodic` rows predate that rule
 - `type` (enum: `move_in` | `move_out` | `periodic`) — **`periodic` is legacy:
   retained in the enum so existing records stay intact and keep rendering, but
   it is no longer offered anywhere in the UI. New inspections are move-in or
@@ -297,8 +338,10 @@ Append-only and immutable like the event tables (no update/delete for anyone).
 Recorded from the "Room check" button on room detail.
 
 ### Relationships
-- A hallway has many rooms. A room has many residents.
-- A resident has many occupancy_events, presence_events, and room_change_events.
+- A hallway has many rooms. A room has many occupancies (its residents).
+- A person has many occupancies — one per term they lived here.
+- An occupancy has many occupancy_events, presence_events, and
+  room_change_events, and the move-in / move-out inspections that bracket it.
 - A room has many inspections; an inspection has one row per inventory_item.
 - A room has many room_checks; each records the staff member who did it.
 - Every event and inspection records the staff member who performed it.
@@ -310,14 +353,15 @@ member can see and act on every hallway, room, and resident in Tudor Hall. Role
 gates writes to the roster, nothing else.
 
 **Any authenticated staff (rd or ra) can:**
-- Read all hallways, rooms, and residents.
+- Read all hallways, rooms, people, and occupancies (and the current term).
 - Search any resident by name or student ID.
 - Record occupancy_events (check-in / check-out) for any resident.
 - Flip `is_present` and record presence_events for any resident.
 - Create and view inspections for any room.
 
 **RD only:**
-- Create/update/delete residents; assign and change rooms (room_change_events).
+- Create/update/delete people and occupancies; archive and unarchive a stay;
+  set the current term; assign and change rooms (room_change_events).
 - Create/update/delete rooms and hallways.
 - Invite/remove staff users and set hallway_assignments.
 - Edit the inventory item template.
@@ -354,7 +398,7 @@ column-level policies. Not worth the complexity in v1.
    break. This list is safety-relevant (who is in the building during a break),
    so make it fast, obvious, and printable.
 
-4. **Room detail** — the residents living in that room with their **student ID
+4. **Room detail** — the current-term residents living in that room with their **student ID
    numbers**, room capacity, and a link to the room's inspection history.
    Each resident row taps through to their own screen, where that resident's
    check-in / check-out lives (post-v1) — occupancy is per resident, never a
@@ -380,23 +424,30 @@ column-level policies. Not worth the complexity in v1.
    and the resident signs **or** the RA records "unavailable / declined" with
    a reason → finalize check-out.
 
-7. **Resident detail** — full record (room, student ID, contacts), plus occupancy
-   history, presence history, and room-change history. Hosts that resident's
-   **occupancy action**, driven by their status: `expected` → "Check-in",
-   `checked_in` → "Check-out", `checked_out` → a completed state with no
-   action (the lifecycle is one-way). The action walks the gated flow —
-   inspection → signatures → record the event — the same ladder the desk
-   uses, shared via `OccupancyGate` / `gateProgress`.
+7. **Resident detail** — one STAY, routed by occupancy id: the person's full
+   record (room, student ID, contacts) plus this stay's occupancy, presence and
+   room-change history, and an **Other stays** list linking that person's other
+   terms. Hosts the **occupancy action**, driven by this stay's status:
+   `expected` → "Check-in", `checked_in` → "Check-out", `checked_out` → a
+   completed state with no action (one stay's lifecycle is one-way; coming back
+   means a new occupancy). The action walks the gated flow — inspection →
+   signatures → record the event — the same ladder the desk uses, shared via
+   `OccupancyGate` / `gateProgress`. An archived or past-term stay renders
+   read-only.
 
 8. **Admin (RD only)** — add/edit residents, manage rooms, invite/remove RAs,
-   assign RAs to hallways, edit the inventory item template.
+   assign RAs to hallways, edit the inventory item template. The resident form
+   matches on **student ID**: a person we've housed before is reused and a new
+   stay is opened for the current term. Also sets the **current term** and
+   archives/unarchives a stay (the only way `is_archived` becomes true).
 
 ## Suggested build order
 
 Build in this order; each step should be usable before starting the next:
 
 1. Scaffold Next.js + Supabase; auth + login; navy/orange design tokens.
-2. Schema + RLS for users, hallways, hallway_assignments, rooms, residents.
+2. Schema + RLS for users, hallways, hallway_assignments, rooms, and the
+   roster (originally one `residents` table; now `people` + `occupancies`).
    Seed the 8 hallways and the 84 real rooms; staff accounts via
    `npm run seed:staff`. (Dev originally used a fake fixture roster here;
    it was retired in migration `20260728215914` — don't re-create it in the

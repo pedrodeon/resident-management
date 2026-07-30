@@ -1,6 +1,7 @@
 // Move-in / move-out (step 5). Occupancy is the one roster write ANY staff may
-// record, and it must follow a one-way lifecycle: a resident checks in once and
-// out once. residents.occupancy_status is only a cache of the event log.
+// record, and one STAY follows a one-way lifecycle: checked in once, out once.
+// A returning student gets a new occupancy rather than reopening this one.
+// occupancies.occupancy_status is only a cache of the event log.
 //
 // Since the two-signature step landed, check_in additionally requires a
 // move-in inspection signed by BOTH the resident and the RA — covered below
@@ -12,9 +13,9 @@ import {
   adminClient,
   staffClient,
   assertSeededDevDatabase,
-  residentByStudentId,
+  occupancyByStudentId,
   eventCount,
-  restoreResident,
+  restoreOccupancy,
   RA_EMAIL,
 } from "./helpers.mjs";
 
@@ -27,16 +28,16 @@ before(async () => {
   await assertSeededDevDatabase();
   admin = adminClient();
   ({ client: ra, userId: raId } = await staffClient(RA_EMAIL));
-  petit = await residentByStudentId(PETIT);
+  petit = await occupancyByStudentId(PETIT);
 });
 
 after(async () => {
-  await restoreResident(PETIT, { occupancy_status: "expected", is_present: true });
+  await restoreOccupancy(PETIT, { occupancy_status: "expected", is_present: true });
 });
 
 // Check-in and check-out are each gated on a fully-signed inspection of the
 // matching type; build one so the lifecycle tests can proceed past the gates.
-async function createSignedInspection(client, userId, residentId, roomId, type) {
+async function createSignedInspection(client, userId, occupancyId, roomId, type) {
   const { data: item } = await adminClient()
     .from("inventory_items")
     .select("id")
@@ -45,7 +46,7 @@ async function createSignedInspection(client, userId, residentId, roomId, type) 
     .single();
   const { data: inspectionId, error } = await client.rpc("create_inspection", {
     target_room: roomId,
-    target_resident: residentId,
+    target_occupancy: occupancyId,
     inspection_type: type,
     inspection_notes: `suite: signed ${type}`,
     items: [{ item_id: item.id, condition: "good", note: null }],
@@ -67,7 +68,7 @@ describe("record_occupancy", () => {
   test("check_in is rejected while the move-in inspection is unsigned", async () => {
     // No move-in inspection at all yet.
     const { error } = await ra.rpc("record_occupancy", {
-      target_resident: petit.id,
+      target_occupancy: petit.id,
       event_type: "check_in",
     });
     assert.ok(error, "checked in without any move-in inspection");
@@ -77,7 +78,7 @@ describe("record_occupancy", () => {
   test("check_in is rejected when only one of two signatures exists", async () => {
     const { data: inspectionId } = await ra.rpc("create_inspection", {
       target_room: petit.room_id,
-      target_resident: petit.id,
+      target_occupancy: petit.id,
       inspection_type: "move_in",
       inspection_notes: "suite: half-signed",
       items: [],
@@ -91,7 +92,7 @@ describe("record_occupancy", () => {
     });
 
     const { error } = await ra.rpc("record_occupancy", {
-      target_resident: petit.id,
+      target_occupancy: petit.id,
       event_type: "check_in",
     });
     assert.ok(error, "checked in with a half-signed inspection");
@@ -102,13 +103,13 @@ describe("record_occupancy", () => {
     const before = await eventCount("occupancy_events", petit.id);
 
     const { error } = await ra.rpc("record_occupancy", {
-      target_resident: petit.id,
+      target_occupancy: petit.id,
       event_type: "check_in",
     });
     assert.equal(error, null, error?.message);
 
     const { data: after } = await admin
-      .from("residents")
+      .from("occupancies")
       .select("occupancy_status, is_present")
       .eq("id", petit.id)
       .single();
@@ -123,7 +124,7 @@ describe("record_occupancy", () => {
     const { data: event } = await admin
       .from("occupancy_events")
       .select("type, recorded_by")
-      .eq("resident_id", petit.id)
+      .eq("occupancy_id", petit.id)
       .order("timestamp", { ascending: false })
       .limit(1)
       .single();
@@ -133,7 +134,7 @@ describe("record_occupancy", () => {
 
   test("checking in twice is rejected", async () => {
     const { error } = await ra.rpc("record_occupancy", {
-      target_resident: petit.id,
+      target_occupancy: petit.id,
       event_type: "check_in",
     });
     assert.ok(error, "a second check-in succeeded");
@@ -141,7 +142,7 @@ describe("record_occupancy", () => {
 
   test("check_out is rejected while the move-out inspection is unsigned", async () => {
     const { error } = await ra.rpc("record_occupancy", {
-      target_resident: petit.id,
+      target_occupancy: petit.id,
       event_type: "check_out",
     });
     assert.ok(error, "checked out without a signed move-out inspection");
@@ -151,13 +152,13 @@ describe("record_occupancy", () => {
   test("an RA can check out a checked-in resident once the move-out is signed", async () => {
     await createSignedInspection(ra, raId, petit.id, petit.room_id, "move_out");
     const { error } = await ra.rpc("record_occupancy", {
-      target_resident: petit.id,
+      target_occupancy: petit.id,
       event_type: "check_out",
     });
     assert.equal(error, null, error?.message);
 
     const { data: after } = await admin
-      .from("residents")
+      .from("occupancies")
       .select("occupancy_status, is_present")
       .eq("id", petit.id)
       .single();
@@ -167,7 +168,7 @@ describe("record_occupancy", () => {
 
   test("checking out twice is rejected", async () => {
     const { error } = await ra.rpc("record_occupancy", {
-      target_resident: petit.id,
+      target_occupancy: petit.id,
       event_type: "check_out",
     });
     assert.ok(error, "a second check-out succeeded");
@@ -175,13 +176,13 @@ describe("record_occupancy", () => {
 
   test("checking out someone who never checked in is rejected", async () => {
     const { data: expected } = await admin
-      .from("residents")
+      .from("occupancies")
       .select("id")
       .eq("occupancy_status", "expected")
       .limit(1)
       .single();
     const { error } = await ra.rpc("record_occupancy", {
-      target_resident: expected.id,
+      target_occupancy: expected.id,
       event_type: "check_out",
     });
     assert.ok(error, "checked out an `expected` resident");
@@ -190,11 +191,11 @@ describe("record_occupancy", () => {
   test("the status cache matches the latest event", async () => {
     // occupancy_status is a cache; the event log is the source of truth. If
     // they drift, occupancy reporting silently lies.
-    const testy = await residentByStudentId(TESTY);
+    const testy = await occupancyByStudentId(TESTY);
     const { data: latest } = await admin
       .from("occupancy_events")
       .select("type")
-      .eq("resident_id", testy.id)
+      .eq("occupancy_id", testy.id)
       .order("timestamp", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -208,7 +209,7 @@ describe("record_occupancy", () => {
   test("the audit trail cannot be written directly", async () => {
     const { error } = await ra
       .from("occupancy_events")
-      .insert({ resident_id: petit.id, type: "check_in" });
+      .insert({ occupancy_id: petit.id, type: "check_in" });
     assert.ok(error, "direct insert into occupancy_events succeeded");
   });
 });

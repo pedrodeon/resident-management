@@ -8,6 +8,7 @@ import type { GateProgress, OccupancyFlow } from "@/lib/occupancy-gate";
 import type { OccupancyStatus } from "@/lib/types";
 
 export type GateResident = {
+  /** The OCCUPANCY id — what record_occupancy and the inspection both key on. */
   id: string;
   full_name: string;
   room_id: string;
@@ -56,7 +57,7 @@ export function OccupancyGate({
   progress: GateProgress | null;
   variant: "inline" | "primary";
   /** Lets a parent apply an optimistic status change in the same transition. */
-  onOptimistic?: (residentId: string, status: OccupancyStatus) => void;
+  onOptimistic?: (occupancyId: string, status: OccupancyStatus) => void;
 }) {
   const router = useRouter();
   const copy = FLOW[flow];

@@ -6,19 +6,19 @@ import { createClient } from "@/lib/supabase/server";
 export type PresenceResult = { ok: true } | { ok: false; error: string };
 
 /**
- * Flip one resident's presence. Goes through the set_presence RPC, which
- * updates is_present AND writes the audit event atomically (RAs can't UPDATE
- * residents directly). Revalidates the hallway and dashboard so their
+ * Flip one stay's presence. Goes through the set_presence RPC, which updates
+ * is_present AND writes the audit event atomically (RAs can't UPDATE
+ * occupancies directly). Revalidates the hallway and dashboard so their
  * away-counts refresh.
  */
 export async function togglePresence(
-  residentId: string,
+  occupancyId: string,
   makePresent: boolean,
   hallwayId: string,
 ): Promise<PresenceResult> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_presence", {
-    target_resident: residentId,
+    target_occupancy: occupancyId,
     make_present: makePresent,
   });
 
@@ -30,8 +30,9 @@ export async function togglePresence(
 }
 
 /**
- * Mark every checked-in resident in a hallway present or away in one call.
- * The RPC logs an event only for residents whose value actually changed.
+ * Mark every checked-in resident in a hallway present or away in one call. The
+ * RPC logs an event only where the value actually changed, and only touches
+ * current-term, non-archived stays.
  */
 export async function bulkSetPresence(
   hallwayId: string,

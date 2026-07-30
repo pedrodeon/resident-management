@@ -10,11 +10,12 @@ export type RoomOption = {
 };
 
 export function ReassignRoom({
-  residentId,
+  occupancyId,
   currentRoomId,
   rooms,
 }: {
-  residentId: string;
+  /** The stay being moved: the stay continues, only its room changes. */
+  occupancyId: string;
   currentRoomId: string;
   rooms: RoomOption[];
 }) {
@@ -28,7 +29,7 @@ export function ReassignRoom({
   function submit() {
     setError(null);
     startTransition(async () => {
-      const result = await reassignRoom(residentId, toRoom, reason);
+      const result = await reassignRoom(occupancyId, toRoom, reason);
       if (!result.ok) {
         setError(result.error);
       } else {

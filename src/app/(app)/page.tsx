@@ -5,12 +5,14 @@ import type { Hallway } from "@/lib/types";
 
 // Nested shape returned by the dashboard query below.
 type HallwayWithCounts = Hallway & {
-  rooms: { residents: { occupancy_status: string; is_present: boolean }[] }[];
+  rooms: {
+    current_residents: { occupancy_status: string; is_present: boolean }[];
+  }[];
   hallway_assignments: { users: { name: string } | null }[];
 };
 
 function countsFor(hallway: HallwayWithCounts) {
-  const residents = hallway.rooms.flatMap((room) => room.residents);
+  const residents = hallway.rooms.flatMap((room) => room.current_residents);
   return {
     checkedIn: residents.filter((r) => r.occupancy_status === "checked_in")
       .length,
@@ -37,11 +39,13 @@ function greeting() {
 export default async function Dashboard() {
   const supabase = await createClient();
   const staff = await getStaffContext();
+  // current_residents, not occupancies: the view already limits this to the
+  // current term's non-archived stays, so past semesters can't inflate a count.
   const { data: hallways, error } = await supabase
     .from("hallways")
     .select(
       `id, name, wing, floor, section, sort_order,
-       rooms ( residents ( occupancy_status, is_present ) ),
+       rooms ( current_residents ( occupancy_status, is_present ) ),
        hallway_assignments ( users ( name ) )`,
     )
     .order("sort_order")

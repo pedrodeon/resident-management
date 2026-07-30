@@ -128,7 +128,8 @@ export function InspectionForm({
       // 2. Record the snapshot (items + photo paths) atomically via the RPC.
       const result = await createInspection({
         roomId,
-        residentId: residentId || null,
+        // The resident picker's value is the occupancy id.
+        occupancyId: residentId || null,
         type,
         notes,
         items: rows.map((r) => ({

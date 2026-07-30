@@ -18,7 +18,7 @@ type HallwayDetail = Hallway & {
     id: string;
     room_number: string;
     capacity: number;
-    residents: RosterResident[];
+    current_residents: RosterResident[];
   }[];
 };
 
@@ -35,7 +35,7 @@ export default async function HallwayPage({
       `id, name, wing, floor, section, sort_order,
        hallway_assignments ( users ( name ) ),
        rooms ( id, room_number, capacity,
-               residents ( id, full_name, occupancy_status, is_present ) )`,
+               current_residents ( id, full_name, occupancy_status, is_present ) )`,
     )
     .eq("id", id)
     .single()
@@ -51,9 +51,11 @@ export default async function HallwayPage({
   const coveredBy = hallway.hallway_assignments
     .map((a) => a.users?.name)
     .filter(Boolean);
+  // `id` here is the occupancy id — what set_presence and the resident screen
+  // both key on.
   const roster: RosterEntry[] = rooms
     .flatMap((room) =>
-      room.residents.map((resident) => ({
+      room.current_residents.map((resident) => ({
         id: resident.id,
         full_name: resident.full_name,
         room_number: room.room_number,
@@ -103,7 +105,7 @@ export default async function HallwayPage({
                 {room.room_number}
               </span>
               <p className="mt-1 text-xs text-gray-500">
-                {room.residents.length} / {room.capacity} residents
+                {room.current_residents.length} / {room.capacity} residents
               </p>
             </Link>
           </li>

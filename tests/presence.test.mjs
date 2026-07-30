@@ -1,7 +1,7 @@
 // The presence toggle (step 4). The invariant that matters: is_present and its
 // presence_events row are written together by set_presence, so the live flag
 // and the audit trail can never disagree — and an RA can do it despite having
-// no direct UPDATE on residents.
+// no direct UPDATE on occupancies.
 
 import { test, before, after, describe } from "node:test";
 import assert from "node:assert/strict";
@@ -9,10 +9,10 @@ import {
   adminClient,
   staffClient,
   assertSeededDevDatabase,
-  residentByStudentId,
+  occupancyByStudentId,
   hallwayByName,
   eventCount,
-  restoreResident,
+  restoreOccupancy,
   RA_EMAIL,
 } from "./helpers.mjs";
 
@@ -27,30 +27,30 @@ before(async () => {
   await assertSeededDevDatabase();
   admin = adminClient();
   ({ client: ra, userId: raId } = await staffClient(RA_EMAIL));
-  testy = await residentByStudentId(TESTY);
+  testy = await occupancyByStudentId(TESTY);
   holiday1 = await hallwayByName("Holiday 1");
 });
 
 after(async () => {
   // Put Holiday 1 back to seed presence. The events themselves are
   // append-only by design and remain.
-  await restoreResident(TESTY, { is_present: true });
-  await restoreResident("S1000102", { is_present: true });
-  await restoreResident(SUZUKI, { is_present: false });
+  await restoreOccupancy(TESTY, { is_present: true });
+  await restoreOccupancy("S1000102", { is_present: true });
+  await restoreOccupancy(SUZUKI, { is_present: false });
 });
 
 describe("set_presence", () => {
-  test("an RA can flip presence even though they cannot UPDATE residents", async () => {
+  test("an RA can flip presence even though they cannot UPDATE occupancies", async () => {
     const before = await eventCount("presence_events", testy.id);
 
     const { error } = await ra.rpc("set_presence", {
-      target_resident: testy.id,
+      target_occupancy: testy.id,
       make_present: false,
     });
     assert.equal(error, null, error?.message);
 
     const { data: after } = await admin
-      .from("residents")
+      .from("occupancies")
       .select("is_present")
       .eq("id", testy.id)
       .single();
@@ -64,7 +64,7 @@ describe("set_presence", () => {
     const { data: event } = await admin
       .from("presence_events")
       .select("status, recorded_by")
-      .eq("resident_id", testy.id)
+      .eq("occupancy_id", testy.id)
       .order("timestamp", { ascending: false })
       .limit(1)
       .single();
@@ -75,7 +75,7 @@ describe("set_presence", () => {
 
   test("flipping back writes a 'returned' event", async () => {
     const { error } = await ra.rpc("set_presence", {
-      target_resident: testy.id,
+      target_occupancy: testy.id,
       make_present: true,
     });
     assert.equal(error, null, error?.message);
@@ -83,7 +83,7 @@ describe("set_presence", () => {
     const { data: event } = await admin
       .from("presence_events")
       .select("status")
-      .eq("resident_id", testy.id)
+      .eq("occupancy_id", testy.id)
       .order("timestamp", { ascending: false })
       .limit(1)
       .single();
@@ -91,9 +91,9 @@ describe("set_presence", () => {
   });
 
   test("presence only applies to checked-in residents", async () => {
-    const petit = await residentByStudentId(PETIT);
+    const petit = await occupancyByStudentId(PETIT);
     const { error } = await ra.rpc("set_presence", {
-      target_resident: petit.id,
+      target_occupancy: petit.id,
       make_present: false,
     });
     assert.ok(error, "set_presence succeeded on an `expected` resident");
@@ -103,7 +103,7 @@ describe("set_presence", () => {
     // Writes must go through the RPC so the flag and the log stay in step.
     const { error } = await ra
       .from("presence_events")
-      .insert({ resident_id: testy.id, status: "away" });
+      .insert({ occupancy_id: testy.id, status: "away" });
     assert.ok(error, "direct insert into presence_events succeeded");
   });
 
@@ -111,14 +111,14 @@ describe("set_presence", () => {
     const { data: updated } = await ra
       .from("presence_events")
       .update({ status: "returned" })
-      .eq("resident_id", testy.id)
+      .eq("occupancy_id", testy.id)
       .select();
     assert.equal(updated?.length ?? 0, 0, "an event was edited");
 
     const { data: deleted } = await ra
       .from("presence_events")
       .delete()
-      .eq("resident_id", testy.id)
+      .eq("occupancy_id", testy.id)
       .select();
     assert.equal(deleted?.length ?? 0, 0, "an event was deleted");
   });
@@ -156,7 +156,7 @@ describe("set_presence_bulk", () => {
   });
 
   test("leaves residents who are not checked in alone", async () => {
-    const petit = await residentByStudentId(PETIT);
+    const petit = await occupancyByStudentId(PETIT);
     assert.equal(petit.occupancy_status, "expected");
     // Bulk ran twice above; an `expected` resident must never be touched.
     const count = await eventCount("presence_events", petit.id);

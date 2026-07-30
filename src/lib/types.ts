@@ -39,20 +39,40 @@ export type Room = {
   capacity: number;
 };
 
-export type Resident = {
+/** The person, once, across every stay. */
+export type Person = {
   id: string;
   full_name: string;
   student_id: string;
-  room_id: string;
   phone: string | null;
   emergency_contact: string | null;
+};
+
+/**
+ * One person in one room for one term. A returning student gets a NEW
+ * occupancy; old ones are never reused or reset, only archived.
+ */
+export type Occupancy = {
+  id: string;
+  person_id: string;
+  room_id: string;
+  term: string;
   occupancy_status: OccupancyStatus;
   is_present: boolean;
+  is_archived: boolean;
 };
+
+/**
+ * A row of the `current_residents` view: a current-term, non-archived occupancy
+ * joined to its person. `id` is the OCCUPANCY id — that is what every RPC and
+ * event row keys on.
+ */
+export type CurrentResident = Person &
+  Pick<Occupancy, "person_id" | "room_id" | "term" | "occupancy_status" | "is_present">;
 
 export type PresenceEvent = {
   id: string;
-  resident_id: string;
+  occupancy_id: string;
   status: PresenceStatus;
   timestamp: string;
   recorded_by: string | null;
@@ -61,7 +81,7 @@ export type PresenceEvent = {
 
 export type OccupancyEvent = {
   id: string;
-  resident_id: string;
+  occupancy_id: string;
   type: OccupancyEventType;
   timestamp: string;
   recorded_by: string | null;
@@ -70,7 +90,7 @@ export type OccupancyEvent = {
 
 export type RoomChangeEvent = {
   id: string;
-  resident_id: string;
+  occupancy_id: string;
   from_room_id: string | null;
   to_room_id: string;
   timestamp: string;
@@ -87,7 +107,8 @@ export type InventoryItem = {
 export type Inspection = {
   id: string;
   room_id: string;
-  resident_id: string | null;
+  /** The stay this snapshot brackets. Null only on legacy periodic rows. */
+  occupancy_id: string | null;
   type: InspectionType;
   timestamp: string;
   inspected_by: string | null;
@@ -136,6 +157,13 @@ export type SignatureWaiver = {
   reason: string;
   waived_by: string;
   created_at: string;
+};
+
+/** Single-row settings table. `current_term` scopes every everyday screen. */
+export type AppSettings = {
+  id: true;
+  current_term: string;
+  updated_at: string;
 };
 
 export type InspectionPhoto = {
