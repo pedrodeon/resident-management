@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getStaffContext } from "@/lib/auth";
@@ -119,51 +118,18 @@ export default async function InspectionPage({
       }
     }
   }
-  const date = new Date(inspection.timestamp).toLocaleString();
   const room = inspection.rooms;
 
   return (
     <section>
       <PageHeader back={{ href: `/rooms/${room.id}`, label: `Room ${room.room_number}` }} />
 
-      <nav className="text-sm text-white/50">
-        <Link href="/" className="hover:text-white hover:underline">
-          TUDOR HALL
-        </Link>{" "}
-        /{" "}
-        {room.hallways && (
-          <>
-            <Link
-              href={`/hallways/${room.hallways.id}`}
-              className="hover:text-white hover:underline"
-            >
-              {room.hallways.name}
-            </Link>{" "}
-            /{" "}
-          </>
-        )}
-        <Link
-          href={`/rooms/${room.id}`}
-          className="hover:text-white hover:underline"
-        >
-          Room {room.room_number}
-        </Link>{" "}
-        / Inspection
-      </nav>
-
-      <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <PageTitle>{TYPE_LABEL[inspection.type]} inspection</PageTitle>
-        <span className="text-sm text-white/60">{date}</span>
         {signable && !gateSatisfied && (
           <Badge tone="attention">awaiting signatures</Badge>
         )}
       </div>
-      <p className="mt-1 text-sm text-white/60">
-        Room {room.room_number}
-        {residentName ? ` · ${residentName}` : ""}
-        {stay ? ` · ${stay.term}` : ""}
-        {inspection.users ? ` · by ${inspection.users.name}` : ""}
-      </p>
 
 <Card variant="sheet" className="mt-6">
       {inspection.notes && (
