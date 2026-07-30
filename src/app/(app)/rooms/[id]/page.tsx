@@ -95,14 +95,14 @@ export default async function RoomPage({
         />
       </div>
 
-      <nav className="text-sm text-gray-500">
-        <Link href="/" className="hover:text-navy hover:underline">
+      <nav className="text-sm text-white/50">
+        <Link href="/" className="hover:text-white hover:underline">
           TUDOR HALL
         </Link>{" "}
         /{" "}
         <Link
           href={`/hallways/${room.hallways.id}`}
-          className="hover:text-navy hover:underline"
+          className="hover:text-white hover:underline"
         >
           {room.hallways.name}
         </Link>{" "}
@@ -111,12 +111,13 @@ export default async function RoomPage({
 
       <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <PageTitle>Room {room.room_number}</PageTitle>
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-white/60">
           {room.current_residents.length} / {room.capacity} residents
         </span>
       </div>
 
-      <SectionLabel className="mt-8">Residents</SectionLabel>
+      <Card variant="sheet" className="mt-6">
+      <SectionLabel>Residents</SectionLabel>
       {room.current_residents.length === 0 ? (
         <p className="mt-2 text-sm text-gray-500">This room is empty.</p>
       ) : (
@@ -205,6 +206,7 @@ export default async function RoomPage({
           </Card>
         )}
       </div>
+      </Card>
     </section>
   );
 }

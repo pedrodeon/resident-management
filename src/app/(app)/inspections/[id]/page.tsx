@@ -129,8 +129,8 @@ export default async function InspectionPage({
         <BackLink href={`/rooms/${room.id}`} label={`Room ${room.room_number}`} />
       </div>
 
-      <nav className="text-sm text-gray-500">
-        <Link href="/" className="hover:text-navy hover:underline">
+      <nav className="text-sm text-white/50">
+        <Link href="/" className="hover:text-white hover:underline">
           TUDOR HALL
         </Link>{" "}
         /{" "}
@@ -138,7 +138,7 @@ export default async function InspectionPage({
           <>
             <Link
               href={`/hallways/${room.hallways.id}`}
-              className="hover:text-navy hover:underline"
+              className="hover:text-white hover:underline"
             >
               {room.hallways.name}
             </Link>{" "}
@@ -147,7 +147,7 @@ export default async function InspectionPage({
         )}
         <Link
           href={`/rooms/${room.id}`}
-          className="hover:text-navy hover:underline"
+          className="hover:text-white hover:underline"
         >
           Room {room.room_number}
         </Link>{" "}
@@ -156,25 +156,26 @@ export default async function InspectionPage({
 
       <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <PageTitle>{TYPE_LABEL[inspection.type]} inspection</PageTitle>
-        <span className="text-sm text-gray-500">{date}</span>
+        <span className="text-sm text-white/60">{date}</span>
         {signable && !gateSatisfied && (
           <Badge tone="attention">awaiting signatures</Badge>
         )}
       </div>
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-white/60">
         Room {room.room_number}
         {residentName ? ` · ${residentName}` : ""}
         {stay ? ` · ${stay.term}` : ""}
         {inspection.users ? ` · by ${inspection.users.name}` : ""}
       </p>
 
+<Card variant="sheet" className="mt-6">
       {inspection.notes && (
-        <Card as="p" variant="note" className="mt-4">
+        <Card as="p" variant="note">
           {inspection.notes}
         </Card>
       )}
 
-      <Card as="ul" variant="list" className="mt-6">
+      <Card as="ul" variant="list" className="mt-4 first:mt-0">
         {items.map((item) => (
           <li
             key={item.id}
@@ -248,6 +249,7 @@ export default async function InspectionPage({
           }
         />
       )}
+      </Card>
     </section>
   );
 }

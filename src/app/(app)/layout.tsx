@@ -27,46 +27,41 @@ export default async function AppLayout({
   if (!staff) redirect("/no-access");
   const isRd = staff.role === "rd";
 
+  const glassPill =
+    "whitespace-nowrap rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/20 hover:text-white sm:px-3.5 sm:text-sm";
+
   return (
-    // overflow-x-clip: no element may ever widen the page — wide content must
-    // scroll inside its own overflow-x-auto container (the compare table does).
-    <div className="flex min-h-screen flex-col overflow-x-clip">
-      <header className="bg-navy text-white">
-        {/* flex-wrap: on very narrow phones (<~360px) the Sign out group drops
-            to a second line instead of forcing a horizontal page scroll. The
-            tighter sub-sm gaps keep everything on one line at 375px. */}
+    // canvas-v2 is the app-wide backdrop; overflow-x-clip: no element may ever
+    // widen the page — wide content must scroll inside its own overflow-x-auto
+    // container (the compare table does). header/main are `relative` so they
+    // paint above the canvas glow orbs (positioned pseudo-elements).
+    <div className="canvas-v2 flex min-h-screen flex-col overflow-x-clip">
+      <header className="relative">
+        {/* flex-wrap: on very narrow phones the Sign out group drops to a
+            second line instead of forcing a horizontal page scroll. */}
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-2 gap-y-1 px-4 py-3 sm:gap-4 sm:px-6">
           <div className="flex items-center gap-2 sm:gap-5">
             <Link
               href="/"
-              className="whitespace-nowrap text-base font-bold tracking-wider hover:text-white/80 sm:text-lg sm:tracking-[0.2em]"
+              className="whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.2em] text-white/80 transition-colors hover:text-white sm:text-xs"
             >
-              TUDOR HALL
+              Tudor Hall
             </Link>
-            <Link
-              href="/desk"
-              className="whitespace-nowrap text-sm text-white/80 transition-colors hover:text-white"
-            >
+            <Link href="/desk" className={glassPill}>
               Move-in / out
             </Link>
             {isRd && (
-              <Link
-                href="/admin"
-                className="text-sm text-white/80 transition-colors hover:text-white"
-              >
+              <Link href="/admin" className={glassPill}>
                 Admin
               </Link>
             )}
           </div>
           <div className="flex shrink-0 items-center gap-3">
-            <span className="hidden text-sm text-white/70 sm:inline">
+            <span className="hidden text-sm text-white/50 sm:inline">
               {staff.email}
             </span>
             <form action={signOut}>
-              <button
-                type="submit"
-                className="whitespace-nowrap rounded-md border border-white/30 px-2.5 py-1.5 text-sm transition-colors hover:bg-navy-light sm:px-3"
-              >
+              <button type="submit" className={glassPill}>
                 Sign out
               </button>
             </form>
@@ -74,7 +69,7 @@ export default async function AppLayout({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">
+      <main className="relative mx-auto w-full max-w-5xl flex-1 px-4 pb-10 pt-4 sm:px-6">
         {children}
       </main>
     </div>

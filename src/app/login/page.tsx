@@ -21,8 +21,8 @@ export default async function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-navy-dark to-navy px-4 py-12">
-      <div className="w-full max-w-sm">
+    <main className="canvas-v2 flex min-h-screen flex-col items-center justify-center overflow-x-clip px-4 py-12">
+      <div className="relative w-full max-w-sm">
         <h1 className="text-center text-3xl font-bold tracking-[0.2em] text-white">
           TUDOR HALL
         </h1>
@@ -30,7 +30,7 @@ export default async function LoginPage() {
           Staff sign in — RD and RA accounts only
         </p>
 
-        <div className="mt-8 rounded-2xl bg-white p-6 shadow-xl">
+        <div className="mt-8 rounded-[26px] bg-gradient-to-b from-white to-sheet p-6 shadow-[0_22px_50px_rgba(4,10,26,0.45)]">
           <LoginForm />
         </div>
 

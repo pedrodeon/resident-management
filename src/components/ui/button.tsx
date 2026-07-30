@@ -10,22 +10,22 @@ import type { ComponentProps } from "react";
 const BUTTON_VARIANT = {
   /** The one main action on a screen. */
   primary:
-    "rounded-md bg-navy font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50",
+    "rounded-full bg-navy font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50",
   /** Secondary action that should still read as navy. */
   outline:
-    "rounded-md border border-navy font-medium text-navy transition-colors hover:bg-navy hover:text-white disabled:opacity-40",
+    "rounded-full border border-navy font-medium text-navy transition-colors hover:bg-navy hover:text-white disabled:opacity-40",
   /** Tertiary/neutral action (cancel, print). */
   subtle:
-    "rounded-md border border-gray-300 font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50",
+    "rounded-full border border-line font-medium text-muted transition-colors hover:bg-chip disabled:opacity-50",
   /** Destructive action (delete). Red is functional, never decorative. */
   danger:
-    "rounded-md border border-red-300 font-medium text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50",
+    "rounded-full border border-red-300 font-medium text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50",
   /**
    * Accent-chip action for a step that needs attention (finish signatures,
    * record a waiver). The one interactive use of the accent.
    */
   attention:
-    "rounded-md border-l-4 border-accent bg-accent-soft font-semibold text-ink transition-colors hover:bg-accent disabled:opacity-50",
+    "rounded-full border border-accent-border bg-accent-soft font-semibold text-ink transition-colors hover:bg-accent disabled:opacity-50",
 } as const;
 
 const BUTTON_SIZE = {
@@ -33,7 +33,7 @@ const BUTTON_SIZE = {
   lg: "px-4 py-2.5",
   md: "px-4 py-2 text-sm",
   /** Compact — inline row actions and chip-sized controls. */
-  sm: "px-3 py-1.5 text-xs",
+  sm: "px-3.5 py-1.5 text-xs",
 } as const;
 
 export type ButtonVariant = keyof typeof BUTTON_VARIANT;

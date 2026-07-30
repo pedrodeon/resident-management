@@ -18,13 +18,13 @@ export default async function NoAccessPage() {
   if (staff) redirect("/");
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-navy-dark to-navy px-4 py-12">
-      <div className="w-full max-w-sm">
+    <main className="canvas-v2 flex min-h-screen flex-col items-center justify-center overflow-x-clip px-4 py-12">
+      <div className="relative w-full max-w-sm">
         <h1 className="text-center text-3xl font-bold tracking-[0.2em] text-white">
           TUDOR HALL
         </h1>
 
-        <div className="mt-8 rounded-2xl bg-white p-6 shadow-xl">
+        <div className="mt-8 rounded-[26px] bg-gradient-to-b from-white to-sheet p-6 shadow-[0_22px_50px_rgba(4,10,26,0.45)]">
           <h2 className="text-lg font-semibold text-navy">Account not set up</h2>
           <p className="mt-2 text-sm text-gray-600">
             You&rsquo;re signed in, but this login isn&rsquo;t linked to a staff

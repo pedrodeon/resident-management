@@ -8,6 +8,7 @@ import {
 import { getCurrentTerm } from "@/lib/current-term";
 import type { OccupancyStatus } from "@/lib/types";
 import { PageTitle } from "@/components/ui/typography";
+import { Card } from "@/components/ui/card";
 
 // Reads `occupancies` directly, not the current_residents view: this is the one
 // screen that must show archived and past-term stays, since it's where they get
@@ -87,18 +88,20 @@ export default async function AdminResidentsPage() {
       </div>
 
       <PageTitle>Residents</PageTitle>
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-white/60">
         A resident is a <strong>person</strong> plus a <strong>stay</strong>. A
         returning student keeps their person record and gets a new stay — their
         old one is never reused or reset.
       </p>
-      <div className="mt-6">
+      <Card variant="sheet" className="mt-6">
+      <div>
         <ResidentsManager
           stays={stays}
           rooms={roomChoices}
           currentTerm={term ?? ""}
         />
       </div>
+      </Card>
     </section>
   );
 }

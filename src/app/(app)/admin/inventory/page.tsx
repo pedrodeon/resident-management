@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BackLink } from "@/components/back-link";
 import { InventoryManager, type AdminItem } from "@/components/admin/inventory-manager";
 import { PageTitle } from "@/components/ui/typography";
+import { Card } from "@/components/ui/card";
 
 export default async function AdminInventoryPage() {
   const supabase = await createClient();
@@ -23,9 +24,11 @@ export default async function AdminInventoryPage() {
         The checklist used for every room inspection. Changes apply to new
         inspections; past snapshots keep the items they were taken with.
       </p>
-      <div className="mt-6">
+      <Card variant="sheet" className="mt-6">
+      <div>
         <InventoryManager items={data ?? []} />
       </div>
+      </Card>
     </section>
   );
 }

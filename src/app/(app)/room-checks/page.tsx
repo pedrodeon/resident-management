@@ -38,9 +38,11 @@ export default async function RoomChecksIndexPage() {
     return (
       <section>
         <PageTitle>Room checks</PageTitle>
-        <Card as="p" variant="note" className="mt-4">
-          No rooms found. Apply the schema and seed data first — see
-          docs/SETUP.md.
+        <Card variant="sheet" className="mt-6">
+          <Card as="p" variant="note">
+            No rooms found. Apply the schema and seed data first — see
+            docs/SETUP.md.
+          </Card>
         </Card>
       </section>
     );
@@ -54,12 +56,13 @@ export default async function RoomChecksIndexPage() {
       </div>
 
       <PageTitle>Room checks</PageTitle>
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-white/60">
         Weekly condition checks. Pick a room to record this week&rsquo;s.
       </p>
 
+<Card variant="sheet" className="mt-6">
       {hallways.map((hallway) => (
-        <div key={hallway.id} className="mt-8">
+        <div key={hallway.id} className="mt-8 first:mt-0">
           <SectionLabel>
             <Link
               href={`/hallways/${hallway.id}`}
@@ -111,6 +114,7 @@ export default async function RoomChecksIndexPage() {
           </Card>
         </div>
       ))}
+      </Card>
     </section>
   );
 }

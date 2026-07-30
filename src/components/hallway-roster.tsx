@@ -2,10 +2,9 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
-import { StatusChip } from "@/components/ui/status-chip";
-import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
-import { Card } from "@/components/ui/card";
+import { Avatar, Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { SectionLabel } from "@/components/ui/typography";
 import { togglePresence, bulkSetPresence } from "@/app/(app)/hallways/[id]/actions";
 import type { OccupancyStatus } from "@/lib/types";
@@ -18,6 +17,12 @@ export type RosterEntry = {
   is_present: boolean;
 };
 
+function statusLabel(entry: RosterEntry) {
+  if (entry.occupancy_status === "expected") return "Not yet arrived";
+  if (entry.occupancy_status === "checked_out") return "Checked out";
+  return entry.is_present ? "In building" : "Away from building";
+}
+
 export function HallwayRoster({
   hallwayId,
   residents,
@@ -26,6 +31,8 @@ export function HallwayRoster({
   residents: RosterEntry[];
 }) {
   const [error, setError] = useState<string | null>(null);
+  // Away-only view — display filter only, nothing about the data changes.
+  const [filter, setFilter] = useState<"all" | "away">("all");
   const [isPending, startTransition] = useTransition();
 
   // Optimistic overlay of is_present by resident id, so flips feel instant.
@@ -39,6 +46,12 @@ export function HallwayRoster({
 
   const checkedIn = optimistic.filter((r) => r.occupancy_status === "checked_in");
   const awayCount = checkedIn.filter((r) => !r.is_present).length;
+  const visible =
+    filter === "away"
+      ? optimistic.filter(
+          (r) => r.occupancy_status === "checked_in" && !r.is_present,
+        )
+      : optimistic;
 
   function flip(id: string, makePresent: boolean) {
     setError(null);
@@ -61,39 +74,55 @@ export function HallwayRoster({
     });
   }
 
+  const pill = (active: boolean) =>
+    `rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+      active ? "bg-navy text-white" : "bg-chip text-muted hover:bg-line"
+    }`;
+
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SectionLabel>
-          Roster
-          {checkedIn.length > 0 && (
-            <span className="ml-2 font-normal normal-case text-gray-400">
-              {awayCount} away / {checkedIn.length} checked in
-            </span>
-          )}
-        </SectionLabel>
-
-        <div className="flex gap-2 print:hidden">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => flipAll(true)}
-            disabled={isPending || checkedIn.length === 0}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+        <SectionLabel>Roster</SectionLabel>
+        {/* View filter (mockup's All/Away pills) — print shows the full list. */}
+        <div className="flex gap-1.5 print:hidden">
+          <button
+            type="button"
+            onClick={() => setFilter("all")}
+            className={pill(filter === "all")}
           >
-            Mark all present
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => flipAll(false)}
-            disabled={isPending || checkedIn.length === 0}
+            All {optimistic.length}
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter("away")}
+            className={pill(filter === "away")}
           >
-            Mark all away
-          </Button>
-          <Button variant="subtle" size="sm" onClick={() => window.print()}>
-            Print
-          </Button>
+            Away {awayCount}
+          </button>
         </div>
+      </div>
+
+      {/* Bulk sweep + print — the break-day workflow, kept from v1. */}
+      <div className="mt-2.5 flex flex-wrap gap-2 px-1 print:hidden">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => flipAll(true)}
+          disabled={isPending || checkedIn.length === 0}
+        >
+          Mark all present
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => flipAll(false)}
+          disabled={isPending || checkedIn.length === 0}
+        >
+          Mark all away
+        </Button>
+        <Button variant="subtle" size="sm" onClick={() => window.print()}>
+          Print
+        </Button>
       </div>
 
       {error && (
@@ -103,31 +132,34 @@ export function HallwayRoster({
       )}
 
       {optimistic.length === 0 ? (
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="mt-3 text-sm text-muted">
           No residents in this hallway yet.
         </p>
+      ) : visible.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">Nobody is marked away.</p>
       ) : (
-        <Card as="ul" variant="list" className="mt-2">
-          {optimistic.map((resident) => {
+        <ul className="mt-3 flex flex-col gap-2">
+          {visible.map((resident) => {
             const away =
               resident.occupancy_status === "checked_in" && !resident.is_present;
             return (
               <li
                 key={resident.id}
-                className={`flex items-center justify-between gap-3 px-4 py-2.5 ${
-                  away ? "border-l-4 border-accent bg-accent-soft" : ""
+                className={`flex items-center gap-3 rounded-[18px] border bg-white px-3 py-[11px] shadow-[0_2px_6px_rgba(15,29,58,0.05)] ${
+                  away ? "border-accent-border" : "border-line"
                 }`}
               >
-                <div className="flex items-baseline gap-3">
+                <Avatar name={resident.full_name} />
+                <div className="min-w-0 flex-1">
                   <Link
                     href={`/residents/${resident.id}`}
-                    className="text-sm font-medium hover:text-navy hover:underline"
+                    className="block truncate text-sm font-semibold text-ink hover:text-navy hover:underline"
                   >
                     {resident.full_name}
                   </Link>
-                  <span className="text-xs text-gray-500">
-                    Room {resident.room_number}
-                  </span>
+                  <p className="mt-0.5 text-xs text-muted">
+                    Room {resident.room_number} · {statusLabel(resident)}
+                  </p>
                 </div>
 
                 {resident.occupancy_status === "checked_in" ? (
@@ -136,16 +168,15 @@ export function HallwayRoster({
                     disabled={isPending}
                     onChange={(makePresent) => flip(resident.id, makePresent)}
                   />
+                ) : resident.occupancy_status === "expected" ? (
+                  <Badge tone="attention">Expected</Badge>
                 ) : (
-                  <StatusChip
-                    status={resident.occupancy_status}
-                    isPresent={resident.is_present}
-                  />
+                  <Badge tone="quiet">Checked out</Badge>
                 )}
               </li>
             );
           })}
-        </Card>
+        </ul>
       )}
     </div>
   );
@@ -161,30 +192,24 @@ function PresenceToggle({
   onChange: (makePresent: boolean) => void;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      {/* Text label prints and reads clearly; the switch is the control. */}
+    <button
+      type="button"
+      role="switch"
+      aria-checked={present}
+      aria-label={present ? "Mark away" : "Mark present"}
+      disabled={disabled}
+      onClick={() => onChange(!present)}
+      className={`relative inline-flex h-[30px] w-[52px] flex-none items-center rounded-full border p-[3px] shadow-[inset_0_1px_3px_rgba(15,29,58,0.18)] transition-colors disabled:opacity-50 print:hidden ${
+        present
+          ? "border-navy bg-navy"
+          : "border-accent-deep bg-accent"
+      }`}
+    >
       <span
-        className={`text-xs font-medium ${present ? "text-gray-600" : "text-ink"}`}
-      >
-        {present ? "In building" : "Away"}
-      </span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={present}
-        aria-label={present ? "Mark away" : "Mark present"}
-        disabled={disabled}
-        onClick={() => onChange(!present)}
-        className={`relative inline-flex h-6 w-11 flex-none items-center rounded-full transition-colors disabled:opacity-50 print:hidden ${
-          present ? "bg-navy" : "bg-accent"
+        className={`block h-6 w-6 transform rounded-full bg-white shadow-[0_2px_5px_rgba(15,29,58,0.35)] transition-transform ${
+          present ? "translate-x-[22px]" : "translate-x-0"
         }`}
-      >
-        <span
-          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-            present ? "translate-x-5" : "translate-x-0.5"
-          }`}
-        />
-      </button>
-    </div>
+      />
+    </button>
   );
 }

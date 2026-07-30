@@ -8,6 +8,7 @@ import {
 } from "@/components/admin/staff-manager";
 import type { StaffRole } from "@/lib/types";
 import { PageTitle } from "@/components/ui/typography";
+import { Card } from "@/components/ui/card";
 
 type StaffRow = {
   id: string;
@@ -51,13 +52,15 @@ export default async function AdminStaffPage() {
         Hallway coverage is metadata only — every staff member can access every
         hallway regardless.
       </p>
-      <div className="mt-6">
+      <Card variant="sheet" className="mt-6">
+      <div>
         <StaffManager
           staff={staffList}
           hallways={hallwayChoices}
           currentUserId={caller?.id ?? ""}
         />
       </div>
+      </Card>
     </section>
   );
 }

@@ -1,86 +1,153 @@
 @import "tailwindcss";
 
 /*
- * Tudor Hall design tokens — school colors: navy, light orange, black, white.
- * Navy dominates the chrome (nav, headers, primary buttons); white is for
- * content areas; black for body text; light orange is an ACCENT ONLY, used
- * sparingly for status that needs attention (away, expected, damaged/missing).
+ * Tudor Hall design tokens — v2 (design-mockups/dashboard-v2.png, exact hexes
+ * from design-mockups/hallway-v2.html). School colors: navy, light orange,
+ * black, white. Navy dominates; white is for content sheets; light orange is
+ * an ACCENT ONLY, used sparingly for status that needs attention (away,
+ * expected, damaged/missing).
  *
- * Contrast rule: light orange fails contrast against white for text. Use it
- * as a background chip, badge, or left-border with dark text on top — never
- * as a text color on a white background.
+ * Contrast rule (unchanged from v1): light orange fails contrast against
+ * white for text. Use it as a background chip, badge, or border with dark
+ * text on top — never as a text color on a white background.
  */
 @theme inline {
-  --color-navy: #1b2a4a;
-  --color-navy-dark: #131f38; /* hover / pressed state for navy surfaces */
-  --color-navy-light: #33487a; /* secondary navy surfaces, hover on navy */
+  --color-navy: #16264a; /* primary surfaces, buttons, toggle tracks */
+  --color-navy-dark: #0f1d3e; /* hover / pressed state for navy surfaces */
+  --color-navy-light: #23386c; /* gradient partner + secondary navy */
 
-  --color-accent: #ffb566; /* light orange — backgrounds/borders only */
-  --color-accent-soft: #ffe8d1; /* pale orange for highlighted row backgrounds */
+  /* The dark canvas behind every screen (the .canvas-v2 gradient). */
+  --color-canvas: #0a1633;
+  --color-canvas-mid: #14284f;
+  --color-canvas-glow: #1e3a75;
 
-  --color-ink: #171717; /* body text */
-  --color-paper: #ffffff; /* the app's page background — white content areas */
+  --color-accent: #f7b267; /* light orange — backgrounds/borders only */
+  --color-accent-border: #f0be83; /* away-state card/tile borders */
+  --color-accent-deep: #e09a45; /* border of controls filled with the accent */
+  --color-accent-soft: #fbe9d6; /* pale wash for highlighted chips/rows */
 
-  --font-sans: var(--font-geist-sans);
+  --color-ink: #11141b; /* body text (blue-tinted near-black) */
+  --color-muted: #737c90; /* secondary text on white */
+  --color-faint: #8a93a6; /* tertiary text, tiny uppercase captions */
+  --color-line: #e6e9f1; /* hairline borders on white */
+  --color-chip: #f1f3f8; /* quiet pill/chip fill */
+  --color-sheet: #f6f8fc; /* bottom of the content-sheet gradient */
+  --color-paper: #ffffff;
+
+  --font-sans: var(--font-sora);
   --font-mono: var(--font-geist-mono);
 }
 
 /*
- * Design system — the dashboard's visual language, codified.
+ * Design system v2 — the mockup's visual language, codified.
  *
- * The COMPONENTS live in src/components/ui/ (Card, Badge, Button, StatusChip,
- * typography, …); this block records the conventions they embed, so tokens and
- * usage rules are documented in one place. Colors above; type, spacing, and
- * shape below. On-navy surfaces use white at fixed opacities rather than
- * extra color tokens: white/90 icons · white/70 lead text · white/60 labels
- * and captions · white/50 de-emphasis · white/10 borders and track fills ·
- * white/5 glass card fill.
+ * COMPONENTS live in src/components/ui/ (Card, Badge, Avatar, StatusDot,
+ * Button, StatusChip, typography, …); this block records the conventions they
+ * embed. On-canvas text uses white at fixed opacities: white 90–100 titles ·
+ * white/70 lead · white/60 metadata · white/50 eyebrows and breadcrumbs ·
+ * white/38 context captions. Glass surfaces: linear-gradient white .20→.04
+ * fill, white/22 border, inset top highlight.
  *
  * Functional colors (not school colors, never decorative):
  *   red        errors and destructive actions only (Alert tone="error",
- *              Button variant="danger") — it must never compete with the
- *              accent's "needs attention" meaning
- *   gray scale neutral text, borders, and the `note` surface
+ *              Button variant="danger")
+ *   neutrals   --color-muted/faint text, --color-line borders, --color-chip
+ *              fills — blue-tinted, never plain Tailwind grays in new code
  *
- * Type roles (Tailwind's default scale — these pairings ARE the system):
- *   page title      text-2xl font-semibold text-navy
- *   card title      text-lg  font-bold     text-navy
- *   section label   text-sm  font-semibold uppercase tracking-wide  text-gray-500
- *   eyebrow on navy text-xs  font-semibold uppercase tracking-wider text-white/60
- *   stat value      text-5xl font-bold tracking-tight
- *   row title       font-bold text-ink; row subtext text-sm text-gray-500
- *   metadata        text-xs text-gray-500; monospace ids font-mono
- *
- * Spacing rhythm:
- *   page-level blocks     gap-5 / mt-6+
- *   cards                 p-4 (p-5 for hero/glass); sm:p-5 on wide screens
- *   rows in a list        p-3 (dashboard) or px-4 py-2.5 (dense lists)
- *   heading → content     mt-2 / mt-3
+ * Type roles (Sora):
+ *   page title      text-3xl font-bold tracking-tight text-white  (on canvas)
+ *   section header  text-[17px] font-bold tracking-tight text-navy (in sheet)
+ *   eyebrow         text-[11px] font-semibold uppercase tracking-[0.2em] white/50
+ *   row title       text-sm font-semibold text-ink
+ *   row subtext     text-xs text-muted
+ *   tiny caption    text-[10px] font-medium uppercase tracking-wider text-faint
+ *   monospace ids   font-mono
  *
  * Shape:
- *   rounded-2xl  top-level surfaces (cards, tiles, shell panels)
- *   rounded-xl   rows and small tiles inside a card
- *   rounded-md   controls (buttons, inputs)
- *   rounded-full chips and badges
+ *   rounded-[30px] the page content sheet
+ *   rounded-2xl    cards and tiles (16px)
+ *   rounded-[18px] roster/list rows
+ *   rounded-xl     small squircle badges (12px)
+ *   rounded-full   every control: buttons, pills, toggles, avatars, dots
+ *
+ * Shadows:
+ *   sheet  0 22px 50px rgba(4,10,26,0.45) + white lip highlight above
+ *   card   0 2px 6px rgba(15,29,58,0.05)
+ *   badge  inset 0 1px 0 rgba(255,255,255,0.22), 0 5px 11px rgba(15,29,58,0.26)
  */
 
 /* Used at a desk and on phones in one consistent look — no dark-mode invert. */
 body {
-  background: var(--color-paper);
+  background: var(--color-canvas);
   color: var(--color-ink);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sora), "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 /*
- * Printing the hallway roster (safety-relevant: who's in the building during
- * a break). Drop the navy nav so the printed sheet is just the roster.
- * Element-level controls (toggles, buttons) opt out with `print:hidden`.
+ * The v2 canvas: deep radial navy with two soft glow orbs (orange top-right,
+ * blue mid-left). One class so every screen's backdrop is identical.
+ */
+.canvas-v2 {
+  position: relative;
+  background: radial-gradient(
+    120% 70% at 12% 0%,
+    var(--color-canvas-glow) 0%,
+    var(--color-canvas-mid) 42%,
+    var(--color-canvas) 100%
+  );
+}
+.canvas-v2::before,
+.canvas-v2::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+}
+.canvas-v2::before {
+  top: -90px;
+  right: -70px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(
+    circle,
+    rgba(247, 178, 103, 0.22) 0%,
+    rgba(247, 178, 103, 0) 68%
+  );
+}
+.canvas-v2::after {
+  top: 200px;
+  left: -130px;
+  width: 340px;
+  height: 340px;
+  background: radial-gradient(
+    circle,
+    rgba(93, 143, 255, 0.22) 0%,
+    rgba(93, 143, 255, 0) 70%
+  );
+}
+
+/*
+ * Printing the hallway roster (safety-relevant: who's in the building during a
+ * break). The dark canvas prints as a plain white sheet: chrome hidden, glow
+ * orbs off, all text forced to ink — the away rows keep their orange border
+ * via exact color printing. Element-level controls opt out with print:hidden.
  */
 @media print {
   header {
     display: none;
   }
-  /* Ensure the orange "away" highlight survives the print color pass. */
+  body,
+  .canvas-v2 {
+    background: #ffffff !important;
+  }
+  .canvas-v2::before,
+  .canvas-v2::after {
+    display: none;
+  }
+  .canvas-v2 * {
+    color: var(--color-ink) !important;
+    box-shadow: none !important;
+  }
   * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;

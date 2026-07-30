@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BackLink } from "@/components/back-link";
 import { RoomsManager, type HallwayGroup } from "@/components/admin/rooms-manager";
 import { PageTitle } from "@/components/ui/typography";
+import { Card } from "@/components/ui/card";
 
 type HallwayRow = {
   id: string;
@@ -49,9 +50,11 @@ export default async function AdminRoomsPage() {
       </div>
 
       <PageTitle>Rooms</PageTitle>
-      <div className="mt-6">
+      <Card variant="sheet" className="mt-6">
+      <div>
         <RoomsManager hallways={hallways} />
       </div>
+      </Card>
     </section>
   );
 }

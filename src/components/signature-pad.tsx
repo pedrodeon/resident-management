@@ -54,7 +54,7 @@ export function SignaturePad({
     ctx.scale(dpr, dpr);
     ctx.fillStyle = token("--color-paper", "#ffffff");
     ctx.fillRect(0, 0, rect.width, rect.height);
-    ctx.strokeStyle = token("--color-navy", "#1b2a4a");
+    ctx.strokeStyle = token("--color-navy", "#16264a");
     ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";

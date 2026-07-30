@@ -185,20 +185,20 @@ export default async function ResidentPage({
         <BackLink href={`/rooms/${room.id}`} label={`Room ${room.room_number}`} />
       </div>
 
-      <nav className="text-sm text-gray-500">
-        <Link href="/" className="hover:text-navy hover:underline">
+      <nav className="text-sm text-white/50">
+        <Link href="/" className="hover:text-white hover:underline">
           TUDOR HALL
         </Link>{" "}
         /{" "}
         {room.hallways && (
           <>
-            <Link href={`/hallways/${room.hallways.id}`} className="hover:text-navy hover:underline">
+            <Link href={`/hallways/${room.hallways.id}`} className="hover:text-white hover:underline">
               {room.hallways.name}
             </Link>{" "}
             /{" "}
           </>
         )}
-        <Link href={`/rooms/${room.id}`} className="hover:text-navy hover:underline">
+        <Link href={`/rooms/${room.id}`} className="hover:text-white hover:underline">
           Room {room.room_number}
         </Link>{" "}
         / {person.full_name}
@@ -207,9 +207,10 @@ export default async function ResidentPage({
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
         <PageTitle>{person.full_name}</PageTitle>
         <StatusChip status={stay.occupancy_status} isPresent={stay.is_present} />
-        <span className="text-sm text-gray-500">{stay.term}</span>
+        <span className="text-sm text-white/60">{stay.term}</span>
       </div>
 
+<Card variant="sheet" className="mt-6">
       {isHistoric && (
         <Alert tone="attention" className="mt-3">
           {stay.is_archived
@@ -362,6 +363,7 @@ export default async function ResidentPage({
           note: e.reason,
         }))}
       />
+      </Card>
     </section>
   );
 }

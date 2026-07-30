@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { getStaffContext } from "@/lib/auth";
-import { NavyShell } from "@/components/ui/navy-shell";
 import { StatCard } from "@/components/ui/stat-card";
 import { ActionTile } from "@/components/ui/action-tile";
 import { Card, CardLink } from "@/components/ui/card";
@@ -60,12 +59,12 @@ export default async function Dashboard() {
 
   if (error || !hallways || hallways.length === 0) {
     return (
-      <NavyShell lead={`${greeting()}, ${firstName}`}>
+      <Greeting lead={`${greeting()}, ${firstName}`}>
         <Card variant="glassQuiet" className="text-sm text-white/70">
           No hallways found. Apply the schema and seed data first — see
           docs/SETUP.md.
         </Card>
-      </NavyShell>
+      </Greeting>
     );
   }
 
@@ -84,7 +83,7 @@ export default async function Dashboard() {
     totals.total > 0 ? Math.round((totals.checkedIn / totals.total) * 100) : 0;
 
   return (
-    <NavyShell lead={`${greeting()}, ${firstName}`}>
+    <Greeting lead={`${greeting()}, ${firstName}`}>
       {/* Hero stat */}
       <StatCard
         label="Checked in"
@@ -141,7 +140,23 @@ export default async function Dashboard() {
           })}
         </ul>
       </Card>
-    </NavyShell>
+    </Greeting>
+  );
+}
+
+/** The dashboard's canvas-zone lead line + gap-5 stack (ex-NavyShell). */
+function Greeting({
+  lead,
+  children,
+}: {
+  lead: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="pt-2">
+      <p className="text-sm text-white/70">{lead}</p>
+      <div className="mt-4 flex flex-col gap-5">{children}</div>
+    </section>
   );
 }
 

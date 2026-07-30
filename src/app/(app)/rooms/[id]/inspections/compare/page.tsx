@@ -6,6 +6,7 @@ import { ConditionChip } from "@/components/condition-chip";
 import { PHOTO_BUCKET } from "@/lib/photos";
 import type { InspectionType, ItemCondition } from "@/lib/types";
 import { PageTitle } from "@/components/ui/typography";
+import { Card } from "@/components/ui/card";
 
 type SideInspection = {
   id: string;
@@ -142,12 +143,12 @@ export default async function ComparePage({
         />
       </div>
 
-      <nav className="text-sm text-gray-500">
-        <Link href="/" className="hover:text-navy hover:underline">
+      <nav className="text-sm text-white/50">
+        <Link href="/" className="hover:text-white hover:underline">
           TUDOR HALL
         </Link>{" "}
         /{" "}
-        <Link href={`/rooms/${roomId}`} className="hover:text-navy hover:underline">
+        <Link href={`/rooms/${roomId}`} className="hover:text-white hover:underline">
           Room
         </Link>{" "}
         / Compare
@@ -155,7 +156,8 @@ export default async function ComparePage({
 
       <PageTitle className="mt-2">Compare inspections</PageTitle>
 
-      <div className="mt-6 overflow-x-auto">
+      <Card variant="sheet" className="mt-6">
+      <div className="overflow-x-auto">
         <table className="w-full min-w-[32rem] border-collapse text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-gray-500">
@@ -218,6 +220,7 @@ export default async function ComparePage({
         Rows highlighted orange got worse between the two snapshots — the damage
         to attribute.
       </p>
+      </Card>
     </section>
   );
 }

@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BackLink } from "@/components/back-link";
 import { HallwayRoster, type RosterEntry } from "@/components/hallway-roster";
-import { CardLink } from "@/components/ui/card";
-import { SquareBadge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Avatar, SquareBadge, StatusDot } from "@/components/ui/badge";
 import { PageTitle, SectionLabel } from "@/components/ui/typography";
 import type { Hallway, OccupancyStatus } from "@/lib/types";
 
@@ -53,7 +53,8 @@ export default async function HallwayPage({
   // Coverage isn't 1:1 and the RD covers some hallways — "covered by", not "RA".
   const coveredBy = hallway.hallway_assignments
     .map((a) => a.users?.name)
-    .filter(Boolean);
+    .filter((n): n is string => Boolean(n));
+  const totalBeds = rooms.reduce((sum, room) => sum + room.capacity, 0);
   // `id` here is the occupancy id — what set_presence and the resident screen
   // both key on.
   const roster: RosterEntry[] = rooms
@@ -70,54 +71,88 @@ export default async function HallwayPage({
 
   return (
     <section>
-      {/* Up one level: hallway → dashboard. */}
-      <div className="mb-3">
+      {/* Canvas zone: back, breadcrumb + context, title, coverage. */}
+      <div className="mb-4">
         <BackLink href="/" label="TUDOR HALL" />
       </div>
 
-      <nav className="text-sm text-gray-500">
-        <Link href="/" className="hover:text-navy hover:underline">
-          TUDOR HALL
-        </Link>{" "}
-        / {hallway.name}
-      </nav>
-
-      <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <PageTitle>{hallway.name}</PageTitle>
-        <span className="text-sm capitalize text-gray-500">
-          {hallway.wing} wing · floor {hallway.floor}
-        </span>
-        {coveredBy.length > 0 && (
-          <span className="text-sm text-gray-500">
-            Covered by: {coveredBy.join(", ")}
-          </span>
-        )}
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <nav className="text-sm text-white/50">
+          <Link href="/" className="hover:text-white hover:underline">
+            TUDOR HALL
+          </Link>{" "}
+          / {hallway.name}
+        </nav>
+        <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
+          Floor {hallway.floor} · {hallway.wing} wing
+        </p>
       </div>
 
-      <div className="mt-8">
-        <SectionLabel>Rooms</SectionLabel>
-      </div>
-      {/* Row cards (the dashboard's hallway-row idiom) are wider than the old
-          square tiles, so one fewer column at each break. */}
-      <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {rooms.map((room) => (
-          <li key={room.id}>
-            <CardLink variant="row" href={`/rooms/${room.id}`}>
-              <SquareBadge>{room.room_number}</SquareBadge>
-              <div className="min-w-0">
-                <p className="font-bold text-ink">Room {room.room_number}</p>
-                <p className="mt-0.5 truncate text-sm text-gray-500">
-                  {room.current_residents.length} / {room.capacity} residents
-                </p>
-              </div>
-            </CardLink>
-          </li>
-        ))}
-      </ul>
+      <PageTitle className="mt-3">{hallway.name}</PageTitle>
+      {coveredBy.length > 0 && (
+        <div className="mt-2 flex items-center gap-2">
+          <Avatar name={coveredBy[0]} tone="glass" size="sm" />
+          <p className="text-[12.5px] text-white/60">
+            Covered by {coveredBy.join(", ")}
+          </p>
+        </div>
+      )}
 
-      <div className="mt-8">
-        <HallwayRoster hallwayId={hallway.id} residents={roster} />
-      </div>
+      {/* The content sheet — everything below the header floats on it. */}
+      <Card variant="sheet" className="mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+          <SectionLabel>Rooms</SectionLabel>
+          <p className="text-xs text-muted">
+            {rooms.length} rooms · {totalBeds} beds
+          </p>
+        </div>
+
+        <ul className="mt-3 grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(96px,1fr))]">
+          {rooms.map((room) => {
+            const residentsIn = room.current_residents.filter(
+              (r) => r.occupancy_status === "checked_in" && r.is_present,
+            ).length;
+            const hasAway = room.current_residents.some(
+              (r) => r.occupancy_status === "checked_in" && !r.is_present,
+            );
+            return (
+              <li key={room.id}>
+                <Link
+                  href={`/rooms/${room.id}`}
+                  className={`flex flex-col gap-2 rounded-2xl border bg-white p-[11px] pb-2.5 shadow-[0_2px_6px_rgba(15,29,58,0.05)] transition-all hover:border-navy hover:shadow-[0_8px_20px_rgba(15,29,58,0.13)] ${
+                    hasAway ? "border-accent-border" : "border-line"
+                  }`}
+                >
+                  <span className="flex items-center justify-between gap-1.5">
+                    <SquareBadge size="sm">{room.room_number}</SquareBadge>
+                    <StatusDot
+                      state={
+                        hasAway
+                          ? "attention"
+                          : residentsIn > 0
+                            ? "occupied"
+                            : "empty"
+                      }
+                    />
+                  </span>
+                  <span>
+                    <span className="block text-[13px] font-semibold text-ink">
+                      {residentsIn}/{room.capacity}
+                    </span>
+                    <span className="mt-0.5 block text-[10px] font-medium uppercase tracking-wider text-faint">
+                      Residents in
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="mt-6">
+          <HallwayRoster hallwayId={hallway.id} residents={roster} />
+        </div>
+      </Card>
     </section>
   );
 }

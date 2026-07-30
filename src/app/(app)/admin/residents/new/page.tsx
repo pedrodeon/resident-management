@@ -5,6 +5,7 @@ import { getCurrentTerm } from "@/lib/current-term";
 import type { OccupancyStatus } from "@/lib/types";
 import { Alert } from "@/components/ui/alert";
 import { PageTitle } from "@/components/ui/typography";
+import { Card } from "@/components/ui/card";
 
 // Every person plus every stay they've had — the picker has to show the RD that
 // this is the same student who lived here last year, which is the whole point of
@@ -95,26 +96,28 @@ export default async function NewStayPage() {
       </div>
 
       <PageTitle>New or returning student</PageTitle>
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-white/60">
         Find the student first. If they&rsquo;ve lived here before, their record
         is reused and this becomes a new, separate stay — their old one keeps its
         room, status, and inspections exactly as recorded.
       </p>
 
+<Card variant="sheet" className="mt-6">
       {term === null && (
-        <Alert tone="attention" className="mt-4">
+        <Alert tone="attention">
           No current term is set. Set one on the Residents screen first, so a new
           stay lands in the right semester.
         </Alert>
       )}
 
-      <div className="mt-6">
+      <div className="mt-4 first:mt-0">
         <OpenStayFlow
           people={personOptions}
           rooms={roomChoices}
           currentTerm={term ?? ""}
         />
       </div>
+      </Card>
     </section>
   );
 }

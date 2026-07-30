@@ -65,20 +65,20 @@ export default async function DeskPage() {
       </div>
 
       <PageTitle>Move-in / Move-out</PageTitle>
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-white/60">
         Search any resident to record a check-in or check-out.
       </p>
 
+      <Card variant="sheet" className="mt-6">
       {error ? (
-        <Card as="p" variant="note" className="mt-4">
+        <Card as="p" variant="note">
           Couldn’t load residents. Apply the schema and seed data — see
           docs/SETUP.md.
         </Card>
       ) : (
-        <div className="mt-6">
-          <DeskConsole residents={residents} />
-        </div>
+        <DeskConsole residents={residents} />
       )}
+      </Card>
     </section>
   );
 }

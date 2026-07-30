@@ -5,6 +5,7 @@ import { BackLink } from "@/components/back-link";
 import { InspectionForm } from "@/components/inspection-form";
 import type { CreatableInspectionType, InventoryItem } from "@/lib/types";
 import { PageTitle } from "@/components/ui/typography";
+import { Card } from "@/components/ui/card";
 
 type RoomRow = {
   id: string;
@@ -68,21 +69,21 @@ export default async function NewInspectionPage({
         <BackLink href={`/rooms/${room.id}`} label={`Room ${room.room_number}`} />
       </div>
 
-      <nav className="text-sm text-gray-500">
-        <Link href="/" className="hover:text-navy hover:underline">
+      <nav className="text-sm text-white/50">
+        <Link href="/" className="hover:text-white hover:underline">
           TUDOR HALL
         </Link>{" "}
         /{" "}
         <Link
           href={`/hallways/${room.hallways.id}`}
-          className="hover:text-navy hover:underline"
+          className="hover:text-white hover:underline"
         >
           {room.hallways.name}
         </Link>{" "}
         /{" "}
         <Link
           href={`/rooms/${room.id}`}
-          className="hover:text-navy hover:underline"
+          className="hover:text-white hover:underline"
         >
           Room {room.room_number}
         </Link>{" "}
@@ -90,11 +91,12 @@ export default async function NewInspectionPage({
       </nav>
 
       <PageTitle className="mt-2">New inspection</PageTitle>
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-white/60">
         A dated snapshot of Room {room.room_number}. Immutable once saved.
       </p>
 
-      <div className="mt-6">
+      <Card variant="sheet" className="mt-6">
+      <div>
         <InspectionForm
           roomId={room.id}
           roomNumber={room.room_number}
@@ -104,6 +106,7 @@ export default async function NewInspectionPage({
           defaultResidentId={defaultResidentId}
         />
       </div>
+      </Card>
     </section>
   );
 }

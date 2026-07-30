@@ -20,11 +20,11 @@ export default async function AdminLayout({
   if (!staff || staff.role !== "rd") {
     return (
       <section>
-        <h1 className="text-2xl font-semibold text-navy">Admin</h1>
-        <p className="mt-4 rounded-md border-l-4 border-accent bg-accent-soft px-4 py-3 text-sm text-ink">
+        <h1 className="text-3xl font-bold tracking-tight text-white">Admin</h1>
+        <p className="mt-4 rounded-xl border border-accent-border bg-accent-soft px-3.5 py-2.5 text-sm text-ink">
           This area is for the Resident Director only.
         </p>
-        <Link href="/" className="mt-4 inline-block text-sm text-navy hover:underline">
+        <Link href="/" className="mt-4 inline-block text-sm text-white/70 hover:text-white hover:underline">
           ← Back to dashboard
         </Link>
       </section>
@@ -33,15 +33,15 @@ export default async function AdminLayout({
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-3">
-        <Link href="/admin" className="text-sm font-semibold text-navy hover:underline">
+      <div className="flex flex-wrap gap-2 border-b border-white/10 pb-3">
+        <Link href="/admin" className="text-sm font-semibold text-white hover:underline">
           Admin
         </Link>
         {SECTIONS.map((s) => (
           <Link
             key={s.href}
             href={s.href}
-            className="text-sm text-gray-600 hover:text-navy hover:underline"
+            className="text-sm text-white/60 hover:text-white hover:underline"
           >
             · {s.label}
           </Link>

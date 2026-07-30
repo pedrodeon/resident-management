@@ -1,6 +1,6 @@
 import { BackLink } from "@/components/back-link";
 import { PageTitle } from "@/components/ui/typography";
-import { CardLink } from "@/components/ui/card";
+import { Card, CardLink } from "@/components/ui/card";
 
 const CARDS = [
   { href: "/admin/residents", label: "Residents", desc: "Open stays for new and returning students; edit, archive, and set the term." },
@@ -18,7 +18,8 @@ export default function AdminIndex() {
       </div>
 
       <PageTitle>Admin</PageTitle>
-      <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+      <Card variant="sheet" className="mt-6">
+      <ul className="grid gap-3 sm:grid-cols-2">
         {CARDS.map((c) => (
           <li key={c.href}>
             <CardLink variant="row" href={c.href}>
@@ -30,6 +31,7 @@ export default function AdminIndex() {
           </li>
         ))}
       </ul>
+      </Card>
     </section>
   );
 }

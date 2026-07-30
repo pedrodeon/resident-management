@@ -2,25 +2,34 @@ import Link from "next/link";
 import type { ComponentProps, ElementType } from "react";
 
 /*
- * Surfaces. Class strings are copied byte-for-byte from the redesigned
- * dashboard — the source of truth for the app's look — so adopting a Card
- * elsewhere reproduces it exactly.
+ * Surfaces — v2. Values match design-mockups/hallway-v2.html exactly: the
+ * floating content sheet, soft-shadowed white cards on it, and gradient glass
+ * on the canvas.
  */
 const CARD_VARIANT = {
-  /** White content card on a navy or gray background. */
-  panel: "rounded-2xl bg-white p-4 shadow-xl sm:p-5",
-  /** Translucent "glass" card on a navy surface (the dashboard hero). */
-  glass: "rounded-2xl border border-white/10 bg-white/5 p-5 shadow-lg",
-  /** Quieter glass panel for empty/error states on navy. */
-  glassQuiet: "rounded-2xl border border-white/10 bg-white/5 px-4 py-3",
-  /** A tappable row inside a panel (the dashboard's hallway rows). */
-  row: "flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 shadow-sm transition-colors hover:border-navy/30 hover:bg-gray-50",
-  /** Dense divided list (rosters, histories) on the row-card surface. */
-  list: "divide-y divide-gray-100 rounded-xl border border-gray-100 bg-white shadow-sm",
-  /** Quiet white content box on a white page (forms, record cards). */
-  box: "rounded-xl border border-gray-100 bg-white p-4 shadow-sm",
-  /** Gray informational box — notes, quotes, gentle empty states. */
-  note: "rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600",
+  /**
+   * The page content sheet: one per screen, floating on the canvas. White
+   * fading to --color-sheet, heavy drop shadow, white lip highlight above.
+   */
+  sheet:
+    "rounded-[30px] bg-gradient-to-b from-white to-sheet p-4 text-ink shadow-[0_-6px_0_rgba(255,255,255,0.10),0_22px_50px_rgba(4,10,26,0.45)] sm:p-5",
+  /** Standalone white content card on the canvas (login, dashboard panels). */
+  panel:
+    "rounded-[26px] bg-gradient-to-b from-white to-sheet p-4 text-ink shadow-[0_22px_50px_rgba(4,10,26,0.45)] sm:p-5",
+  /** Gradient glass card on the canvas (the dashboard hero). */
+  glass:
+    "rounded-2xl border border-white/20 bg-gradient-to-br from-white/20 to-white/[0.04] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_8px_18px_rgba(4,10,26,0.45)]",
+  /** Quieter glass for empty/error states on the canvas. */
+  glassQuiet:
+    "rounded-2xl border border-white/20 bg-gradient-to-br from-white/15 to-white/[0.04] px-4 py-3 text-white",
+  /** A tappable row card inside the sheet (roster rows, hallway rows). */
+  row: "flex items-center gap-3 rounded-[18px] border border-line bg-white p-3 shadow-[0_2px_6px_rgba(15,29,58,0.05)] transition-all hover:border-navy/40 hover:shadow-[0_8px_20px_rgba(15,29,58,0.13)]",
+  /** Dense divided list (histories, admin lists) on the card surface. */
+  list: "divide-y divide-line rounded-[18px] border border-line bg-white shadow-[0_2px_6px_rgba(15,29,58,0.05)]",
+  /** Quiet white content box inside the sheet (forms, record cards). */
+  box: "rounded-2xl border border-line bg-white p-4 shadow-[0_2px_6px_rgba(15,29,58,0.05)]",
+  /** Chip-gray informational box — notes, quotes, gentle empty states. */
+  note: "rounded-xl border border-line bg-chip px-4 py-3 text-sm text-muted",
 } as const;
 
 export type CardVariant = keyof typeof CARD_VARIANT;
