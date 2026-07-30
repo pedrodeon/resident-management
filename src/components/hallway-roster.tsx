@@ -4,6 +4,7 @@ import { useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import { StatusChip } from "@/components/ui/status-chip";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { SectionLabel } from "@/components/ui/typography";
 import { togglePresence, bulkSetPresence } from "@/app/(app)/hallways/[id]/actions";
 import type { OccupancyStatus } from "@/lib/types";
@@ -108,7 +109,7 @@ export function HallwayRoster({
           No residents in this hallway yet.
         </p>
       ) : (
-        <ul className="mt-2 divide-y divide-gray-100 rounded-xl border border-gray-100 bg-white shadow-sm">
+        <Card as="ul" variant="list" className="mt-2">
           {optimistic.map((resident) => {
             const away =
               resident.occupancy_status === "checked_in" && !resident.is_present;
@@ -146,7 +147,7 @@ export function HallwayRoster({
               </li>
             );
           })}
-        </ul>
+        </Card>
       )}
     </div>
   );
