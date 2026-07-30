@@ -2,6 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { createRoom, updateRoom, deleteRoom } from "@/app/(app)/admin/rooms/actions";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { SectionLabel } from "@/components/ui/typography";
 
 export type AdminRoom = {
   id: string;
@@ -29,13 +33,9 @@ export function RoomsManager({ hallways }: { hallways: HallwayGroup[] }) {
 
   return (
     <div className="flex flex-col gap-8">
-      {error && (
-        <p role="alert" className="rounded-md border-l-4 border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800">
-          {error}
-        </p>
-      )}
+      {error && <Alert tone="error">{error}</Alert>}
 
-      <div className="flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 bg-white p-4">
+      <Card variant="box" className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Hallway</span>
           <select
@@ -67,29 +67,27 @@ export function RoomsManager({ hallways }: { hallways: HallwayGroup[] }) {
             className="w-24 rounded-md border border-gray-300 px-3 py-2 text-base"
           />
         </label>
-        <button
-          type="button"
+        <Button
           onClick={() =>
             run(() => createRoom(hallwayId, roomNumber, Number(capacity)), () => setRoomNumber(""))
           }
           disabled={isPending || !roomNumber.trim()}
-          className="rounded-md bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
         >
           Add room
-        </button>
-      </div>
+        </Button>
+      </Card>
 
       {hallways.map((h) => (
         <div key={h.id}>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">{h.name}</h2>
+          <SectionLabel>{h.name}</SectionLabel>
           {h.rooms.length === 0 ? (
             <p className="mt-2 text-sm text-gray-500">No rooms.</p>
           ) : (
-            <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+            <Card as="ul" variant="list" className="mt-2">
               {h.rooms.map((room) => (
                 <RoomRow key={room.id} room={room} disabled={isPending} run={run} />
               ))}
-            </ul>
+            </Card>
           )}
         </div>
       ))}
@@ -129,24 +127,24 @@ function RoomRow({
       />
       <span className="text-xs text-gray-500">{room.occupants} in room</span>
       <div className="ml-auto flex gap-2">
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => run(() => updateRoom(room.id, number, Number(capacity)))}
           disabled={disabled || !dirty}
-          className="rounded-md border border-navy px-3 py-1.5 text-xs font-medium text-navy hover:bg-navy hover:text-white disabled:opacity-40"
         >
           Save
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="danger"
+          size="sm"
           onClick={() => {
             if (confirm(`Delete room ${room.room_number}?`)) run(() => deleteRoom(room.id));
           }}
           disabled={disabled}
-          className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
         >
           Delete
-        </button>
+        </Button>
       </div>
     </li>
   );

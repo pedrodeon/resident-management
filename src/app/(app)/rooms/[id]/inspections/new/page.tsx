@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BackLink } from "@/components/back-link";
 import { InspectionForm } from "@/components/inspection-form";
 import type { CreatableInspectionType, InventoryItem } from "@/lib/types";
+import { PageTitle } from "@/components/ui/typography";
 
 type RoomRow = {
   id: string;
@@ -88,7 +89,7 @@ export default async function NewInspectionPage({
         / New inspection
       </nav>
 
-      <h1 className="mt-2 text-2xl font-semibold text-navy">New inspection</h1>
+      <PageTitle className="mt-2">New inspection</PageTitle>
       <p className="mt-1 text-sm text-gray-500">
         A dated snapshot of Room {room.room_number}. Immutable once saved.
       </p>

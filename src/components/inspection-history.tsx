@@ -4,6 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { InspectionType } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { SectionLabel } from "@/components/ui/typography";
 
 export type HistoryEntry = {
   id: string;
@@ -42,9 +45,7 @@ export function InspectionHistory({
           move-in and move-out, and each belongs to one resident, so they are
           started from that resident's screen as part of check-in / check-out.
           This section is history + compare. */}
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-        Inspections
-      </h2>
+      <SectionLabel>Inspections</SectionLabel>
 
       {inspections.length === 0 ? (
         <p className="mt-2 text-sm text-gray-500">
@@ -52,7 +53,7 @@ export function InspectionHistory({
           a resident&rsquo;s screen, as part of their check-in or check-out.
         </p>
       ) : (
-        <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+        <Card as="ul" variant="list" className="mt-2">
           {inspections.map((insp) => (
             <li key={insp.id}>
               <Link
@@ -69,7 +70,7 @@ export function InspectionHistory({
               </Link>
             </li>
           ))}
-        </ul>
+        </Card>
       )}
 
       {inspections.length >= 2 && (
@@ -103,14 +104,14 @@ export function InspectionHistory({
               ))}
             </select>
           </label>
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={compare}
             disabled={!a || !b || a === b}
-            className="rounded-md border border-navy px-3 py-1.5 text-sm font-medium text-navy transition-colors hover:bg-navy hover:text-white disabled:opacity-40"
           >
             Compare
-          </button>
+          </Button>
         </div>
       )}
     </div>

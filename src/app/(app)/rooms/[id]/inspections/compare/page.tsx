@@ -5,6 +5,7 @@ import { BackLink } from "@/components/back-link";
 import { ConditionChip } from "@/components/condition-chip";
 import { PHOTO_BUCKET } from "@/lib/photos";
 import type { InspectionType, ItemCondition } from "@/lib/types";
+import { PageTitle } from "@/components/ui/typography";
 
 type SideInspection = {
   id: string;
@@ -152,7 +153,7 @@ export default async function ComparePage({
         / Compare
       </nav>
 
-      <h1 className="mt-2 text-2xl font-semibold text-navy">Compare inspections</h1>
+      <PageTitle className="mt-2">Compare inspections</PageTitle>
 
       <div className="mt-6 overflow-x-auto">
         <table className="w-full min-w-[32rem] border-collapse text-sm">

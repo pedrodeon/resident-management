@@ -11,6 +11,9 @@ import {
 } from "@/components/inspection-signatures";
 import { PHOTO_BUCKET } from "@/lib/photos";
 import type { InspectionType, ItemCondition, SignatureRole } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { PageTitle } from "@/components/ui/typography";
 
 type InspectionDetail = {
   id: string;
@@ -152,14 +155,10 @@ export default async function InspectionPage({
       </nav>
 
       <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h1 className="text-2xl font-semibold text-navy">
-          {TYPE_LABEL[inspection.type]} inspection
-        </h1>
+        <PageTitle>{TYPE_LABEL[inspection.type]} inspection</PageTitle>
         <span className="text-sm text-gray-500">{date}</span>
         {signable && !gateSatisfied && (
-          <span className="rounded-full border-l-4 border-accent bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-ink">
-            awaiting signatures
-          </span>
+          <Badge tone="attention">awaiting signatures</Badge>
         )}
       </div>
       <p className="mt-1 text-sm text-gray-500">
@@ -170,12 +169,12 @@ export default async function InspectionPage({
       </p>
 
       {inspection.notes && (
-        <p className="mt-4 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+        <Card as="p" variant="note" className="mt-4">
           {inspection.notes}
-        </p>
+        </Card>
       )}
 
-      <ul className="mt-6 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+      <Card as="ul" variant="list" className="mt-6">
         {items.map((item) => (
           <li
             key={item.id}
@@ -217,7 +216,7 @@ export default async function InspectionPage({
             )}
           </li>
         ))}
-      </ul>
+      </Card>
 
       {/* Attestations: resident + RA sign against this exact snapshot; the
           check-in / check-out cannot be finalized until the gate is met. */}

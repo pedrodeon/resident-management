@@ -4,6 +4,7 @@ import { useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import { StatusChip } from "@/components/ui/status-chip";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import { SectionLabel } from "@/components/ui/typography";
 import { togglePresence, bulkSetPresence } from "@/app/(app)/hallways/[id]/actions";
@@ -96,12 +97,9 @@ export function HallwayRoster({
       </div>
 
       {error && (
-        <p
-          role="alert"
-          className="mt-2 rounded-md border-l-4 border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800 print:hidden"
-        >
+        <Alert tone="error" className="mt-2 print:hidden">
           {error}
-        </p>
+        </Alert>
       )}
 
       {optimistic.length === 0 ? (

@@ -9,6 +9,9 @@ import { OccupancyGate } from "@/components/occupancy-gate";
 import { ReassignRoom, type RoomOption } from "@/components/reassign-room";
 import { gateProgress, type GateInspection } from "@/lib/occupancy-gate";
 import type { OccupancyStatus } from "@/lib/types";
+import { Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
+import { PageTitle, SectionLabel } from "@/components/ui/typography";
 
 // The route id is an OCCUPANCY id — one stay. Read from the occupancies table
 // rather than the current_residents view: a past or archived stay must stay
@@ -202,22 +205,22 @@ export default async function ResidentPage({
       </nav>
 
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-        <h1 className="text-2xl font-semibold text-navy">{person.full_name}</h1>
+        <PageTitle>{person.full_name}</PageTitle>
         <StatusChip status={stay.occupancy_status} isPresent={stay.is_present} />
         <span className="text-sm text-gray-500">{stay.term}</span>
       </div>
 
       {isHistoric && (
-        <p className="mt-3 rounded-md border-l-4 border-accent bg-accent-soft px-3 py-2 text-sm text-ink">
+        <Alert tone="attention" className="mt-3">
           {stay.is_archived
             ? "This stay is archived."
             : `This stay is from ${stay.term}, not the current term.`}{" "}
           It&rsquo;s kept for history and can&rsquo;t be acted on.
-        </p>
+        </Alert>
       )}
 
       {/* Record — contacts belong to the person, room and status to the stay. */}
-      <dl className="mt-4 grid grid-cols-1 gap-x-8 gap-y-2 rounded-lg border border-gray-200 bg-white p-4 text-sm sm:grid-cols-2">
+      <Card as="dl" variant="box" className="mt-4 grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
         <div className="flex justify-between gap-4">
           <dt className="text-gray-500">Student ID</dt>
           <dd className="font-mono">{person.student_id}</dd>
@@ -236,17 +239,15 @@ export default async function ResidentPage({
           <dt className="text-gray-500">Emergency contact</dt>
           <dd>{person.emergency_contact ?? "—"}</dd>
         </div>
-      </dl>
+      </Card>
 
       {/* Occupancy — the per-stay check-in / check-out action, driven by this
           stay's status. It also owns the move-in / move-out inspections, since
           each brackets one stay; weekly room checks stay on the room screen. */}
       {!isHistoric && (
         <div className="mt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-            Occupancy
-          </h2>
-          <div className="mt-2 rounded-lg border border-gray-200 bg-white p-4">
+          <SectionLabel>Occupancy</SectionLabel>
+          <Card variant="box" className="mt-2">
             {stay.occupancy_status === "expected" && (
               <OccupancyGate
                 variant="primary"
@@ -283,7 +284,7 @@ export default async function ResidentPage({
                 )}
               </div>
             )}
-          </div>
+          </Card>
         </div>
       )}
 
@@ -300,15 +301,13 @@ export default async function ResidentPage({
       {/* Other stays — the payoff of the split: the same person's other terms,
           each with its own inspections and events still intact. */}
       <div className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-          Other stays
-        </h2>
+        <SectionLabel>Other stays</SectionLabel>
         {otherStays.length === 0 ? (
           <p className="mt-2 text-sm text-gray-500">
             This is {person.full_name}&rsquo;s only stay on record.
           </p>
         ) : (
-          <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+          <Card as="ul" variant="list" className="mt-2">
             {otherStays.map((other) => (
               <li key={other.id}>
                 <Link
@@ -325,7 +324,7 @@ export default async function ResidentPage({
                 </Link>
               </li>
             ))}
-          </ul>
+          </Card>
         )}
       </div>
 
@@ -386,13 +385,11 @@ function History({
 }) {
   return (
     <div className="mt-8">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-        {title}
-      </h2>
+      <SectionLabel>{title}</SectionLabel>
       {rows.length === 0 ? (
         <p className="mt-2 text-sm text-gray-500">{empty}</p>
       ) : (
-        <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+        <Card as="ul" variant="list" className="mt-2">
           {rows.map((row) => (
             <li key={row.id} className="px-4 py-2.5">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3">
@@ -407,7 +404,7 @@ function History({
               )}
             </li>
           ))}
-        </ul>
+        </Card>
       )}
     </div>
   );

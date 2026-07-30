@@ -7,6 +7,7 @@ import {
 } from "@/components/admin/residents-manager";
 import { getCurrentTerm } from "@/lib/current-term";
 import type { OccupancyStatus } from "@/lib/types";
+import { PageTitle } from "@/components/ui/typography";
 
 // Reads `occupancies` directly, not the current_residents view: this is the one
 // screen that must show archived and past-term stays, since it's where they get
@@ -85,7 +86,7 @@ export default async function AdminResidentsPage() {
         <BackLink href="/admin" label="Admin" />
       </div>
 
-      <h1 className="text-2xl font-semibold text-navy">Residents</h1>
+      <PageTitle>Residents</PageTitle>
       <p className="mt-1 text-sm text-gray-500">
         A resident is a <strong>person</strong> plus a <strong>stay</strong>. A
         returning student keeps their person record and gets a new stay — their

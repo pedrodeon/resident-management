@@ -3,6 +3,8 @@ import { BackLink } from "@/components/back-link";
 import { DeskConsole, type DeskResident } from "@/components/desk-console";
 import { gateProgress } from "@/lib/occupancy-gate";
 import type { OccupancyStatus } from "@/lib/types";
+import { Card } from "@/components/ui/card";
+import { PageTitle } from "@/components/ui/typography";
 
 // A row of the current_residents view: `id` is the occupancy id, which is also
 // what the inspections embed and every RPC key on.
@@ -62,16 +64,16 @@ export default async function DeskPage() {
         <BackLink href="/" label="TUDOR HALL" />
       </div>
 
-      <h1 className="text-2xl font-semibold text-navy">Move-in / Move-out</h1>
+      <PageTitle>Move-in / Move-out</PageTitle>
       <p className="mt-1 text-sm text-gray-500">
         Search any resident to record a check-in or check-out.
       </p>
 
       {error ? (
-        <p className="mt-4 rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+        <Card as="p" variant="note" className="mt-4">
           Couldn’t load residents. Apply the schema and seed data — see
           docs/SETUP.md.
-        </p>
+        </Card>
       ) : (
         <div className="mt-6">
           <DeskConsole residents={residents} />

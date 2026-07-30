@@ -1,5 +1,6 @@
-import Link from "next/link";
 import { BackLink } from "@/components/back-link";
+import { PageTitle } from "@/components/ui/typography";
+import { CardLink } from "@/components/ui/card";
 
 const CARDS = [
   { href: "/admin/residents", label: "Residents", desc: "Add, edit, and remove residents; assign rooms." },
@@ -16,17 +17,16 @@ export default function AdminIndex() {
         <BackLink href="/" label="TUDOR HALL" />
       </div>
 
-      <h1 className="text-2xl font-semibold text-navy">Admin</h1>
+      <PageTitle>Admin</PageTitle>
       <ul className="mt-6 grid gap-3 sm:grid-cols-2">
         {CARDS.map((c) => (
           <li key={c.href}>
-            <Link
-              href={c.href}
-              className="block rounded-lg border border-gray-200 bg-white p-4 transition-colors hover:border-navy"
-            >
-              <span className="font-semibold text-navy">{c.label}</span>
-              <p className="mt-1 text-sm text-gray-500">{c.desc}</p>
-            </Link>
+            <CardLink variant="row" href={c.href}>
+              <div>
+                <span className="font-semibold text-navy">{c.label}</span>
+                <p className="mt-1 text-sm text-gray-500">{c.desc}</p>
+              </div>
+            </CardLink>
           </li>
         ))}
       </ul>

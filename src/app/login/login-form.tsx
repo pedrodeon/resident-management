@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 import { login } from "./actions";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(login, null);
@@ -30,22 +32,11 @@ export function LoginForm() {
         />
       </label>
 
-      {state?.error && (
-        <p
-          role="alert"
-          className="rounded-md border-l-4 border-accent bg-accent-soft px-3 py-2 text-sm text-ink"
-        >
-          {state.error}
-        </p>
-      )}
+      {state?.error && <Alert tone="attention">{state.error}</Alert>}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="mt-1 rounded-md bg-navy px-4 py-2.5 font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-60"
-      >
+      <Button type="submit" size="lg" className="mt-1" disabled={pending}>
         {pending ? "Signing in…" : "Sign in"}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { BackLink } from "@/components/back-link";
 import { InventoryManager, type AdminItem } from "@/components/admin/inventory-manager";
+import { PageTitle } from "@/components/ui/typography";
 
 export default async function AdminInventoryPage() {
   const supabase = await createClient();
@@ -17,7 +18,7 @@ export default async function AdminInventoryPage() {
         <BackLink href="/admin" label="Admin" />
       </div>
 
-      <h1 className="text-2xl font-semibold text-navy">Inventory template</h1>
+      <PageTitle>Inventory template</PageTitle>
       <p className="mt-1 text-sm text-gray-500">
         The checklist used for every room inspection. Changes apply to new
         inspections; past snapshots keep the items they were taken with.

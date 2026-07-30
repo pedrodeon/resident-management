@@ -3,6 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { reassignRoom } from "@/app/(app)/residents/[id]/actions";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export type RoomOption = {
   id: string;
@@ -43,23 +46,19 @@ export function ReassignRoom({
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="rounded-md border border-navy px-3 py-1.5 text-xs font-semibold text-navy transition-colors hover:bg-navy hover:text-white"
-      >
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
         Reassign room
-      </button>
+      </Button>
     );
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
+    <Card variant="box">
       <h3 className="text-sm font-semibold">Reassign room</h3>
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-700">
+        <Alert tone="error" className="mt-2">
           {error}
-        </p>
+        </Alert>
       )}
       <div className="mt-3 flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm">
@@ -91,24 +90,18 @@ export function ReassignRoom({
           />
         </label>
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={submit}
-            disabled={isPending || !toRoom}
-            className="rounded-md bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
-          >
+          <Button onClick={submit} disabled={isPending || !toRoom}>
             {isPending ? "Moving…" : "Move resident"}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="subtle"
             onClick={() => setOpen(false)}
             disabled={isPending}
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

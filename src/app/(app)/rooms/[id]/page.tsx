@@ -8,6 +8,10 @@ import {
   type HistoryEntry,
 } from "@/components/inspection-history";
 import type { InspectionType, OccupancyStatus } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { LinkButton } from "@/components/ui/button";
+import { PageTitle, SectionLabel } from "@/components/ui/typography";
 
 type RoomDetail = {
   id: string;
@@ -106,21 +110,17 @@ export default async function RoomPage({
       </nav>
 
       <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <h1 className="text-2xl font-semibold text-navy">
-          Room {room.room_number}
-        </h1>
+        <PageTitle>Room {room.room_number}</PageTitle>
         <span className="text-sm text-gray-500">
           {room.current_residents.length} / {room.capacity} residents
         </span>
       </div>
 
-      <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-gray-500">
-        Residents
-      </h2>
+      <SectionLabel className="mt-8">Residents</SectionLabel>
       {room.current_residents.length === 0 ? (
         <p className="mt-2 text-sm text-gray-500">This room is empty.</p>
       ) : (
-        <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+        <Card as="ul" variant="list" className="mt-2">
           {/* Whole row is the tap target — check-in/out lives on the
               resident's own screen. */}
           {room.current_residents.map((resident) => (
@@ -162,7 +162,7 @@ export default async function RoomPage({
               </Link>
             </li>
           ))}
-        </ul>
+        </Card>
       )}
 
       <div className="mt-8">
@@ -172,20 +172,15 @@ export default async function RoomPage({
       {/* Weekly room checks (RA condition ratings). */}
       <div className="mt-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-            Room checks
-          </h2>
-          <Link
-            href={`/rooms/${room.id}/checks/new`}
-            className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark"
-          >
+          <SectionLabel>Room checks</SectionLabel>
+          <LinkButton size="sm" href={`/rooms/${room.id}/checks/new`}>
             Room check
-          </Link>
+          </LinkButton>
         </div>
         {(checkRows ?? []).length === 0 ? (
           <p className="mt-2 text-sm text-gray-500">No room checks yet.</p>
         ) : (
-          <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+          <Card as="ul" variant="list" className="mt-2">
             {(checkRows ?? []).map((check) => (
               <li key={check.id}>
                 <Link
@@ -197,9 +192,7 @@ export default async function RoomPage({
                       Overall {check.overall} / 5
                     </span>
                     {check.prohibited_items && (
-                      <span className="rounded-full border-l-4 border-accent bg-accent-soft px-2 py-0.5 text-xs font-medium text-ink">
-                        prohibited items
-                      </span>
+                      <Badge tone="attention">prohibited items</Badge>
                     )}
                   </span>
                   <span className="text-xs text-gray-500">
@@ -209,7 +202,7 @@ export default async function RoomPage({
                 </Link>
               </li>
             ))}
-          </ul>
+          </Card>
         )}
       </div>
     </section>

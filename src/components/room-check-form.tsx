@@ -4,6 +4,10 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createRoomCheck } from "@/app/(app)/rooms/[id]/checks/new/actions";
 import type { Rating } from "@/lib/types";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { SectionLabel } from "@/components/ui/typography";
 
 const RATING_FIELDS = [
   { key: "floor_cleanliness", label: "Floor cleanliness" },
@@ -52,23 +56,16 @@ export function RoomCheckForm({
 
   return (
     <div className="flex flex-col gap-6">
-      {error && (
-        <p
-          role="alert"
-          className="rounded-md border-l-4 border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800"
-        >
-          {error}
-        </p>
-      )}
+      {error && <Alert tone="error">{error}</Alert>}
 
       <div>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+        <SectionLabel>
           Ratings — Room {roomNumber}
           <span className="ml-2 font-normal normal-case tracking-normal text-gray-400">
             1 = poor · 5 = excellent
           </span>
-        </h2>
-        <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+        </SectionLabel>
+        <Card as="ul" variant="list" className="mt-2">
           {RATING_FIELDS.map((field) => (
             <li
               key={field.key}
@@ -104,7 +101,7 @@ export function RoomCheckForm({
               </div>
             </li>
           ))}
-        </ul>
+        </Card>
       </div>
 
       <label className="flex flex-col gap-1 text-sm">
@@ -135,22 +132,17 @@ export function RoomCheckForm({
       </label>
 
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={submit}
-          disabled={isPending || !complete}
-          className="rounded-md bg-navy px-4 py-2.5 font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
-        >
+        <Button size="lg" onClick={submit} disabled={isPending || !complete}>
           {isPending ? "Saving…" : "Save room check"}
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="subtle"
+          size="lg"
           onClick={() => router.push(`/rooms/${roomId}`)}
           disabled={isPending}
-          className="rounded-md border border-gray-300 px-4 py-2.5 font-medium text-gray-600 hover:bg-gray-50"
         >
           Cancel
-        </button>
+        </Button>
         {!complete && (
           <span className="text-xs text-gray-400">
             Pick all four ratings to save.

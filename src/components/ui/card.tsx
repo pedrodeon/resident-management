@@ -17,6 +17,10 @@ const CARD_VARIANT = {
   row: "flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 shadow-sm transition-colors hover:border-navy/30 hover:bg-gray-50",
   /** Dense divided list (rosters, histories) on the row-card surface. */
   list: "divide-y divide-gray-100 rounded-xl border border-gray-100 bg-white shadow-sm",
+  /** Quiet white content box on a white page (forms, record cards). */
+  box: "rounded-xl border border-gray-100 bg-white p-4 shadow-sm",
+  /** Gray informational box — notes, quotes, gentle empty states. */
+  note: "rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600",
 } as const;
 
 export type CardVariant = keyof typeof CARD_VARIANT;

@@ -14,7 +14,15 @@ export type SignaturePadHandle = {
   clear: () => void;
 };
 
-const INK = "#1b2a4a"; // navy — matches --color-navy
+// Canvas can't use CSS classes, so read the design tokens off the document at
+// mount time — the pad follows globals.css instead of duplicating hex values.
+function token(name: string, fallback: string) {
+  if (typeof window === "undefined") return fallback;
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
+  return value || fallback;
+}
 
 /**
  * Finger/stylus/mouse signature capture on a plain canvas. No dependencies.
@@ -44,9 +52,9 @@ export function SignaturePad({
     canvas.height = Math.round(rect.height * dpr);
     const ctx = canvas.getContext("2d")!;
     ctx.scale(dpr, dpr);
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = token("--color-paper", "#ffffff");
     ctx.fillRect(0, 0, rect.width, rect.height);
-    ctx.strokeStyle = INK;
+    ctx.strokeStyle = token("--color-navy", "#1b2a4a");
     ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -94,7 +102,7 @@ export function SignaturePad({
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = token("--color-paper", "#ffffff");
     ctx.fillRect(0, 0, rect.width, rect.height);
     setDirty(false);
     onDirtyChange?.(false);

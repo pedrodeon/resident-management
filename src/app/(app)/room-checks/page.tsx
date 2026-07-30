@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { BackLink } from "@/components/back-link";
+import { Card } from "@/components/ui/card";
+import { LinkButton } from "@/components/ui/button";
+import { PageTitle, SectionLabel } from "@/components/ui/typography";
 
 // The weekly room-check workflow's front door (linked from the dashboard
 // tile): every room grouped by hallway, with its most recent check and a
@@ -34,11 +37,11 @@ export default async function RoomChecksIndexPage() {
   if (error || !hallways || hallways.length === 0) {
     return (
       <section>
-        <h1 className="text-2xl font-semibold text-navy">Room checks</h1>
-        <p className="mt-4 rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+        <PageTitle>Room checks</PageTitle>
+        <Card as="p" variant="note" className="mt-4">
           No rooms found. Apply the schema and seed data first — see
           docs/SETUP.md.
-        </p>
+        </Card>
       </section>
     );
   }
@@ -50,22 +53,22 @@ export default async function RoomChecksIndexPage() {
         <BackLink href="/" label="TUDOR HALL" />
       </div>
 
-      <h1 className="text-2xl font-semibold text-navy">Room checks</h1>
+      <PageTitle>Room checks</PageTitle>
       <p className="mt-1 text-sm text-gray-500">
         Weekly condition checks. Pick a room to record this week&rsquo;s.
       </p>
 
       {hallways.map((hallway) => (
         <div key={hallway.id} className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+          <SectionLabel>
             <Link
               href={`/hallways/${hallway.id}`}
               className="hover:text-navy hover:underline"
             >
               {hallway.name}
             </Link>
-          </h2>
-          <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+          </SectionLabel>
+          <Card as="ul" variant="list" className="mt-2">
             {[...hallway.rooms]
               .sort((a, b) =>
                 a.room_number.localeCompare(b.room_number, undefined, {
@@ -95,16 +98,17 @@ export default async function RoomChecksIndexPage() {
                           : "never checked"}
                       </span>
                     </div>
-                    <Link
+                    <LinkButton
+                      variant="outline"
+                      size="sm"
                       href={`/rooms/${room.id}/checks/new`}
-                      className="rounded-md border border-navy px-3 py-1.5 text-xs font-semibold text-navy transition-colors hover:bg-navy hover:text-white"
                     >
                       Room check
-                    </Link>
+                    </LinkButton>
                   </li>
                 );
               })}
-          </ul>
+          </Card>
         </div>
       ))}
     </section>

@@ -28,10 +28,15 @@ export default async function AppLayout({
   const isRd = staff.role === "rd";
 
   return (
-    <div className="flex min-h-screen flex-col">
+    // overflow-x-clip: no element may ever widen the page — wide content must
+    // scroll inside its own overflow-x-auto container (the compare table does).
+    <div className="flex min-h-screen flex-col overflow-x-clip">
       <header className="bg-navy text-white">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6">
-          <div className="flex items-center gap-3 sm:gap-5">
+        {/* flex-wrap: on very narrow phones (<~360px) the Sign out group drops
+            to a second line instead of forcing a horizontal page scroll. The
+            tighter sub-sm gaps keep everything on one line at 375px. */}
+        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-2 gap-y-1 px-4 py-3 sm:gap-4 sm:px-6">
+          <div className="flex items-center gap-2 sm:gap-5">
             <Link
               href="/"
               className="whitespace-nowrap text-base font-bold tracking-wider hover:text-white/80 sm:text-lg sm:tracking-[0.2em]"
@@ -60,7 +65,7 @@ export default async function AppLayout({
             <form action={signOut}>
               <button
                 type="submit"
-                className="whitespace-nowrap rounded-md border border-white/30 px-3 py-1.5 text-sm transition-colors hover:bg-navy-light"
+                className="whitespace-nowrap rounded-md border border-white/30 px-2.5 py-1.5 text-sm transition-colors hover:bg-navy-light sm:px-3"
               >
                 Sign out
               </button>

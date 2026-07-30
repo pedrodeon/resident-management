@@ -99,7 +99,9 @@ export default async function Dashboard() {
         <ActionTile href="/desk" label="Check in">
           <CheckIcon />
         </ActionTile>
-        <ActionTile href="/desk" label="Sign out">
+        {/* Same destination as the nav's Move-in / out; the top-right header
+            button is the app's actual Sign out. */}
+        <ActionTile href="/desk" label="Move-in / out">
           <SwapIcon />
         </ActionTile>
         <ActionTile href="/room-checks" label="Room checks">

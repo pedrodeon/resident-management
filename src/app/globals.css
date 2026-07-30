@@ -19,6 +19,7 @@
   --color-accent-soft: #ffe8d1; /* pale orange for highlighted row backgrounds */
 
   --color-ink: #171717; /* body text */
+  --color-paper: #ffffff; /* the app's page background — white content areas */
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -34,6 +35,12 @@
  * extra color tokens: white/90 icons · white/70 lead text · white/60 labels
  * and captions · white/50 de-emphasis · white/10 borders and track fills ·
  * white/5 glass card fill.
+ *
+ * Functional colors (not school colors, never decorative):
+ *   red        errors and destructive actions only (Alert tone="error",
+ *              Button variant="danger") — it must never compete with the
+ *              accent's "needs attention" meaning
+ *   gray scale neutral text, borders, and the `note` surface
  *
  * Type roles (Tailwind's default scale — these pairings ARE the system):
  *   page title      text-2xl font-semibold text-navy
@@ -59,7 +66,7 @@
 
 /* Used at a desk and on phones in one consistent look — no dark-mode invert. */
 body {
-  background: #ffffff;
+  background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }

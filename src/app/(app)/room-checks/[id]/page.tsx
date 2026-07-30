@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BackLink } from "@/components/back-link";
 import type { Rating } from "@/lib/types";
+import { Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
+import { PageTitle, SectionLabel } from "@/components/ui/typography";
 
 type CheckDetail = {
   id: string;
@@ -76,7 +79,7 @@ export default async function RoomCheckPage({
       </nav>
 
       <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h1 className="text-2xl font-semibold text-navy">Room check</h1>
+        <PageTitle>Room check</PageTitle>
         <span className="text-sm text-gray-500">
           {new Date(check.timestamp).toLocaleString()}
         </span>
@@ -86,7 +89,7 @@ export default async function RoomCheckPage({
         {check.users ? ` · by ${check.users.name}` : ""}
       </p>
 
-      <ul className="mt-6 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+      <Card as="ul" variant="list" className="mt-6">
         {RATING_LABELS.map(([key, label]) => (
           <li key={key} className="flex items-center justify-between px-4 py-2.5">
             <span className="text-sm font-medium">{label}</span>
@@ -95,27 +98,23 @@ export default async function RoomCheckPage({
             </span>
           </li>
         ))}
-      </ul>
+      </Card>
 
       {check.notes && (
         <div className="mt-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-            Notes
-          </h2>
-          <p className="mt-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm whitespace-pre-wrap">
+          <SectionLabel>Notes</SectionLabel>
+          <Card as="p" variant="note" className="mt-1 whitespace-pre-wrap">
             {check.notes}
-          </p>
+          </Card>
         </div>
       )}
 
       {check.prohibited_items && (
         <div className="mt-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-            Prohibited items
-          </h2>
-          <p className="mt-1 rounded-md border-l-4 border-accent bg-accent-soft px-3 py-2 text-sm text-ink whitespace-pre-wrap">
+          <SectionLabel>Prohibited items</SectionLabel>
+          <Alert tone="attention" className="mt-1 whitespace-pre-wrap">
             {check.prohibited_items}
-          </p>
+          </Alert>
         </div>
       )}
     </section>

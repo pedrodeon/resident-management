@@ -19,8 +19,20 @@ const BADGE_TONE = {
 
 export type BadgeTone = keyof typeof BADGE_TONE;
 
-export function Badge({ tone, children }: { tone: BadgeTone; children: ReactNode }) {
-  return <span className={BADGE_TONE[tone]}>{children}</span>;
+export function Badge({
+  tone,
+  className,
+  children,
+}: {
+  tone: BadgeTone;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <span className={className ? `${BADGE_TONE[tone]} ${className}` : BADGE_TONE[tone]}>
+      {children}
+    </span>
+  );
 }
 
 /**

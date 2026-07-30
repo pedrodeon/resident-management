@@ -6,6 +6,9 @@ import { StatusChip } from "@/components/ui/status-chip";
 import { OccupancyGate } from "@/components/occupancy-gate";
 import type { GateProgress } from "@/lib/occupancy-gate";
 import type { OccupancyStatus } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { SectionLabel } from "@/components/ui/typography";
 
 export type DeskResident = {
   id: string;
@@ -78,18 +81,18 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
 
       {/* Expected panel — the move-in-day chase list. */}
       <section>
-        <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-500">
+        <SectionLabel className="flex items-center gap-2">
           Not yet arrived
           {expected.length > 0 && (
-            <span className="rounded-full border-l-4 border-accent bg-accent-soft px-2 py-0.5 text-xs font-medium normal-case tracking-normal text-ink">
+            <Badge tone="attention" className="normal-case tracking-normal">
               {expected.length} expected
-            </span>
+            </Badge>
           )}
-        </h2>
+        </SectionLabel>
         {expected.length === 0 ? (
           <p className="mt-2 text-sm text-gray-500">Everyone has arrived.</p>
         ) : (
-          <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+          <Card as="ul" variant="list" className="mt-2">
             {expected.map((resident) => (
               <li
                 key={resident.id}
@@ -104,15 +107,13 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
                 {gate(resident, "move_in")}
               </li>
             ))}
-          </ul>
+          </Card>
         )}
       </section>
 
       {/* Search + act on anyone building-wide. */}
       <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-          Find a resident
-        </h2>
+        <SectionLabel>Find a resident</SectionLabel>
         <input
           type="search"
           value={query}
@@ -132,7 +133,7 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
         ) : results.length === 0 ? (
           <p className="mt-3 text-sm text-gray-500">No match for “{query}”.</p>
         ) : (
-          <ul className="mt-3 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+          <Card as="ul" variant="list" className="mt-3">
             {results.map((resident) => (
               <li
                 key={resident.id}
@@ -169,7 +170,7 @@ export function DeskConsole({ residents }: { residents: DeskResident[] }) {
                 </div>
               </li>
             ))}
-          </ul>
+          </Card>
         )}
       </section>
     </div>

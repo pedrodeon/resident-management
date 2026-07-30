@@ -13,6 +13,10 @@ import type {
   InventoryItem,
   ItemCondition,
 } from "@/lib/types";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { SectionLabel } from "@/components/ui/typography";
 
 const CONDITIONS: ItemCondition[] = ["good", "fair", "damaged", "missing"];
 
@@ -145,14 +149,7 @@ export function InspectionForm({
 
   return (
     <div className="flex flex-col gap-6">
-      {error && (
-        <p
-          role="alert"
-          className="rounded-md border-l-4 border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800"
-        >
-          {error}
-        </p>
-      )}
+      {error && <Alert tone="error">{error}</Alert>}
 
       <div className="flex flex-wrap gap-4">
         <label className="flex flex-col gap-1 text-sm">
@@ -188,17 +185,15 @@ export function InspectionForm({
       </div>
 
       {residents.length === 0 && (
-        <p className="rounded-md border-l-4 border-accent bg-accent-soft px-3 py-2 text-sm text-ink">
+        <Alert tone="attention">
           This room has no residents. Move-in and move-out inspections record
           one resident&rsquo;s condition report, so assign a resident first.
-        </p>
+        </Alert>
       )}
 
       <div>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-          Condition — Room {roomNumber}
-        </h2>
-        <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+        <SectionLabel>Condition — Room {roomNumber}</SectionLabel>
+        <Card as="ul" variant="list" className="mt-2">
           {template.map((item) => {
             const row = rows.find((r) => r.item_id === item.id)!;
             const flagged =
@@ -278,7 +273,7 @@ export function InspectionForm({
               </li>
             );
           })}
-        </ul>
+        </Card>
       </div>
 
       <label className="flex flex-col gap-1 text-sm">
@@ -292,22 +287,17 @@ export function InspectionForm({
       </label>
 
       <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={submit}
-          disabled={isPending || residentId === ""}
-          className="rounded-md bg-navy px-4 py-2.5 font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-60"
-        >
+        <Button size="lg" onClick={submit} disabled={isPending || residentId === ""}>
           {isPending ? (uploadStatus ?? "Saving…") : "Save inspection"}
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="subtle"
+          size="lg"
           onClick={() => router.push(`/rooms/${roomId}`)}
           disabled={isPending}
-          className="rounded-md border border-gray-300 px-4 py-2.5 font-medium text-gray-600 hover:bg-gray-50"
         >
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -11,6 +11,10 @@ import { recordOccupancy } from "@/app/(app)/desk/actions";
 import { createClient } from "@/lib/supabase/client";
 import { PHOTO_BUCKET } from "@/lib/photos";
 import type { SignatureRole } from "@/lib/types";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { SectionLabel } from "@/components/ui/typography";
 
 export type StoredSignature = {
   role: SignatureRole;
@@ -146,17 +150,12 @@ export function InspectionSignatures({
 
   return (
     <div className="mt-8">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-        Signatures
-      </h2>
+      <SectionLabel>Signatures</SectionLabel>
 
       {error && (
-        <p
-          role="alert"
-          className="mt-2 rounded-md border-l-4 border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800"
-        >
+        <Alert tone="error" className="mt-2">
           {error}
-        </p>
+        </Alert>
       )}
 
       <div className="mt-2 grid gap-4 sm:grid-cols-2">
@@ -185,22 +184,17 @@ export function InspectionSignatures({
       {occupancyStatus === copy.finalizeStatus && (
         <div className="mt-4">
           {gateSatisfied ? (
-            <button
-              type="button"
-              onClick={finalize}
-              disabled={isPending}
-              className="rounded-md bg-navy px-4 py-2.5 font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
-            >
+            <Button size="lg" onClick={finalize} disabled={isPending}>
               {isPending
                 ? "Finalizing…"
                 : `${copy.finalizeLabel} for ${residentName}`}
-            </button>
+            </Button>
           ) : (
-            <p className="rounded-md border-l-4 border-accent bg-accent-soft px-3 py-2 text-sm text-ink">
+            <Alert tone="attention">
               {mode === "move_in"
                 ? "Check-in stays incomplete until both signatures are captured."
                 : "Check-out stays incomplete until the RA has signed and the resident has either signed or been recorded as unavailable."}
-            </p>
+            </Alert>
           )}
         </div>
       )}
@@ -238,7 +232,7 @@ function SignatureBlock({
   const [waiverReason, setWaiverReason] = useState("");
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
+    <Card variant="box">
       <p className="text-sm font-semibold">{title}</p>
       <p className="mt-0.5 text-xs text-gray-500">&ldquo;{attestation}&rdquo;</p>
 
@@ -269,14 +263,13 @@ function SignatureBlock({
       ) : (
         <div className="mt-3">
           <SignaturePad ref={padRef} onDirtyChange={setDirty} disabled={disabled} />
-          <button
-            type="button"
+          <Button
+            className="mt-2"
             onClick={() => onSave(padRef.current)}
             disabled={disabled || !dirty}
-            className="mt-2 rounded-md bg-navy px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
           >
             Save signature
-          </button>
+          </Button>
 
           {allowWaiver && (
             <div className="mt-3 border-t border-gray-100 pt-3">
@@ -302,22 +295,22 @@ function SignatureBlock({
                     />
                   </label>
                   <div className="mt-2 flex gap-2">
-                    <button
-                      type="button"
+                    <Button
+                      variant="attention"
+                      size="sm"
                       onClick={() => onWaive(waiverReason)}
                       disabled={disabled || waiverReason.trim() === ""}
-                      className="rounded-md border-l-4 border-accent bg-accent-soft px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-accent disabled:opacity-50"
                     >
                       Record without resident signature
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
+                      variant="subtle"
+                      size="sm"
                       onClick={() => setWaiverOpen(false)}
                       disabled={disabled}
-                      className="rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -325,6 +318,6 @@ function SignatureBlock({
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

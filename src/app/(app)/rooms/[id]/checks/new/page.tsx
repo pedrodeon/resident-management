@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BackLink } from "@/components/back-link";
 import { RoomCheckForm } from "@/components/room-check-form";
+import { PageTitle } from "@/components/ui/typography";
 
 type RoomRow = {
   id: string;
@@ -54,7 +55,7 @@ export default async function NewRoomCheckPage({
         / Room check
       </nav>
 
-      <h1 className="mt-2 text-2xl font-semibold text-navy">Room check</h1>
+      <PageTitle className="mt-2">Room check</PageTitle>
       <p className="mt-1 text-sm text-gray-500">
         Weekly condition check for Room {room.room_number}. Permanent once
         saved.

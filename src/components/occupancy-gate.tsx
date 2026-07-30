@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { recordOccupancy } from "@/app/(app)/desk/actions";
 import type { GateProgress, OccupancyFlow } from "@/lib/occupancy-gate";
 import type { OccupancyStatus } from "@/lib/types";
+import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button, LinkButton } from "@/components/ui/button";
 
 export type GateResident = {
   /** The OCCUPANCY id — what record_occupancy and the inspection both key on. */
@@ -86,81 +88,59 @@ export function OccupancyGate({
   if (variant === "inline") {
     if (!progress) {
       return (
-        <Link
-          href={inspectionHref}
-          className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark"
-        >
+        <LinkButton size="sm" href={inspectionHref}>
           {copy.inlineStart}
-        </Link>
+        </LinkButton>
       );
     }
     if (!gateMet) {
       return (
-        <Link
-          href={reviewHref!}
-          className="rounded-md border-l-4 border-accent bg-accent-soft px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-accent"
-        >
+        <LinkButton variant="attention" size="sm" href={reviewHref!}>
           Signatures ({progress.signatures}/2)
-        </Link>
+        </LinkButton>
       );
     }
     return (
-      <button
-        type="button"
-        onClick={finalize}
-        disabled={isPending}
-        className="rounded-md bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
-      >
+      <Button size="sm" onClick={finalize} disabled={isPending}>
         {copy.inlineDone}
-      </button>
+      </Button>
     );
   }
 
   // ---- Resident screen: one action named by intent, with a step hint -------
-  const primaryClass =
-    "inline-block rounded-md bg-navy px-4 py-2.5 font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50";
-
   return (
     <div>
       {error && (
-        <p
-          role="alert"
-          className="mb-2 rounded-md border-l-4 border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800"
-        >
+        <Alert tone="error" className="mb-2">
           {error}
-        </p>
+        </Alert>
       )}
 
       {!progress ? (
         <>
-          <Link href={inspectionHref} className={primaryClass}>
+          <LinkButton size="lg" href={inspectionHref} className="inline-block">
             {copy.intent}
-          </Link>
+          </LinkButton>
           <p className="mt-2 text-xs text-gray-500">
             Step 1 of 2 — record the {copy.inspectionStep}.
           </p>
         </>
       ) : !gateMet ? (
         <>
-          <Link href={reviewHref!} className={primaryClass}>
+          <LinkButton size="lg" href={reviewHref!} className="inline-block">
             {copy.intent}
-          </Link>
+          </LinkButton>
           <p className="mt-2">
-            <span className="rounded-md border-l-4 border-accent bg-accent-soft px-2.5 py-1 text-xs font-medium text-ink">
+            <Badge tone="attention">
               Step 2 of 2 — awaiting signatures ({progress.signatures}/2)
-            </span>
+            </Badge>
           </p>
         </>
       ) : (
         <>
-          <button
-            type="button"
-            onClick={finalize}
-            disabled={isPending}
-            className={primaryClass}
-          >
+          <Button size="lg" onClick={finalize} disabled={isPending}>
             {isPending ? "Recording…" : copy.intent}
-          </button>
+          </Button>
           <p className="mt-2 text-xs text-gray-500">
             Inspection signed — ready to finalize.
           </p>

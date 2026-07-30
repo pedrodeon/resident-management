@@ -2,6 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { createItem, updateItem, deleteItem } from "@/app/(app)/admin/inventory/actions";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export type AdminItem = { id: string; name: string; sort_order: number };
 
@@ -23,13 +26,9 @@ export function InventoryManager({ items }: { items: AdminItem[] }) {
 
   return (
     <div className="flex flex-col gap-6">
-      {error && (
-        <p role="alert" className="rounded-md border-l-4 border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800">
-          {error}
-        </p>
-      )}
+      {error && <Alert tone="error">{error}</Alert>}
 
-      <div className="flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 bg-white p-4">
+      <Card variant="box" className="flex flex-wrap items-end gap-2">
         <label className="flex flex-1 flex-col gap-1 text-sm">
           <span className="font-medium">New item</span>
           <input
@@ -40,23 +39,21 @@ export function InventoryManager({ items }: { items: AdminItem[] }) {
             className="rounded-md border border-gray-300 px-3 py-2 text-base"
           />
         </label>
-        <button
-          type="button"
+        <Button
           onClick={() => run(() => createItem(newName, nextOrder), () => setNewName(""))}
           disabled={isPending || !newName.trim()}
-          className="rounded-md bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
         >
           Add
-        </button>
-      </div>
+        </Button>
+      </Card>
 
-      <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+      <Card as="ul" variant="list">
         {[...items]
           .sort((a, b) => a.sort_order - b.sort_order)
           .map((item) => (
             <ItemRow key={item.id} item={item} disabled={isPending} run={run} />
           ))}
-      </ul>
+      </Card>
     </div>
   );
 }
@@ -90,24 +87,24 @@ function ItemRow({
         aria-label={`${item.name} name`}
         className="min-w-40 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm"
       />
-      <button
-        type="button"
+      <Button
+        variant="outline"
+        size="sm"
         onClick={() => run(() => updateItem(item.id, name, Number(order)))}
         disabled={disabled || !dirty}
-        className="rounded-md border border-navy px-3 py-1.5 text-xs font-medium text-navy hover:bg-navy hover:text-white disabled:opacity-40"
       >
         Save
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
+        variant="danger"
+        size="sm"
         onClick={() => {
           if (confirm(`Delete "${item.name}" from the template?`)) run(() => deleteItem(item.id));
         }}
         disabled={disabled}
-        className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
       >
         Delete
-      </button>
+      </Button>
     </li>
   );
 }

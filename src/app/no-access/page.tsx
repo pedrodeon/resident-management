@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAccessState } from "@/lib/auth";
 import { signOut } from "@/app/(app)/actions";
+import { Button } from "@/components/ui/button";
 
 export const metadata = {
   title: "No access — Tudor Hall",
@@ -17,13 +18,13 @@ export default async function NoAccessPage() {
   if (staff) redirect("/");
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-navy px-4 py-12">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-navy-dark to-navy px-4 py-12">
       <div className="w-full max-w-sm">
         <h1 className="text-center text-3xl font-bold tracking-[0.2em] text-white">
           TUDOR HALL
         </h1>
 
-        <div className="mt-8 rounded-lg bg-white p-6 shadow-lg">
+        <div className="mt-8 rounded-2xl bg-white p-6 shadow-xl">
           <h2 className="text-lg font-semibold text-navy">Account not set up</h2>
           <p className="mt-2 text-sm text-gray-600">
             You&rsquo;re signed in, but this login isn&rsquo;t linked to a staff
@@ -32,12 +33,9 @@ export default async function NoAccessPage() {
           </p>
 
           <form action={signOut} className="mt-6">
-            <button
-              type="submit"
-              className="w-full rounded-md bg-navy px-4 py-2.5 font-semibold text-white transition-colors hover:bg-navy-dark"
-            >
+            <Button type="submit" size="lg" className="w-full">
               Sign out
-            </button>
+            </Button>
           </form>
         </div>
       </div>

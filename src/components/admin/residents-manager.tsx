@@ -11,6 +11,10 @@ import {
   type ResidentInput,
 } from "@/app/(app)/admin/residents/actions";
 import type { OccupancyStatus } from "@/lib/types";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { SectionLabel } from "@/components/ui/typography";
 
 export type RoomChoice = { id: string; label: string };
 
@@ -72,19 +76,8 @@ export function ResidentsManager({
 
   return (
     <div className="flex flex-col gap-8">
-      {error && (
-        <p
-          role="alert"
-          className="rounded-md border-l-4 border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800"
-        >
-          {error}
-        </p>
-      )}
-      {notice && (
-        <p className="rounded-md border-l-4 border-navy bg-gray-50 px-3 py-2 text-sm text-ink">
-          {notice}
-        </p>
-      )}
+      {error && <Alert tone="error">{error}</Alert>}
+      {notice && <Alert tone="info">{notice}</Alert>}
 
       <TermControl
         currentTerm={currentTerm}
@@ -179,7 +172,7 @@ function TermControl({
 }) {
   const [term, setTerm] = useState(currentTerm);
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
+    <Card variant="box">
       <h3 className="text-sm font-semibold">Current term</h3>
       <p className="mt-0.5 text-xs text-gray-500">
         Everyday screens show only this term&rsquo;s stays. Changing it rolls the
@@ -196,16 +189,14 @@ function TermControl({
             className="rounded-md border border-gray-300 px-3 py-2 text-base"
           />
         </label>
-        <button
-          type="button"
+        <Button
           onClick={() => onSave(term)}
           disabled={disabled || term.trim() === "" || term.trim() === currentTerm}
-          className="rounded-md bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
         >
           Save term
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -238,14 +229,12 @@ function StayList({
 }) {
   return (
     <div>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-        {heading}
-      </h2>
+      <SectionLabel>{heading}</SectionLabel>
       {note && <p className="mt-1 text-xs text-gray-500">{note}</p>}
       {stays.length === 0 ? (
         <p className="mt-2 text-sm text-gray-500">Nothing here yet.</p>
       ) : (
-        <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+        <Card as="ul" variant="list" className="mt-2">
           {stays.map((stay) =>
             editingId === stay.id ? (
               <li key={stay.id} className="p-4">
@@ -283,34 +272,31 @@ function StayList({
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onEdit(stay.id)}
-                    className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                  >
+                  <Button variant="subtle" size="sm" onClick={() => onEdit(stay.id)}>
                     Edit
-                  </button>
+                  </Button>
                   {stay.is_archived ? (
-                    <button
-                      type="button"
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => onUnarchive(stay)}
                       disabled={isPending}
-                      className="rounded-md border border-navy px-3 py-1.5 text-xs font-medium text-navy hover:bg-navy hover:text-white disabled:opacity-50"
                     >
                       Unarchive
-                    </button>
+                    </Button>
                   ) : (
-                    <button
-                      type="button"
+                    <Button
+                      variant="subtle"
+                      size="sm"
                       onClick={() => onArchive(stay)}
                       disabled={isPending}
-                      className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                     >
                       Archive
-                    </button>
+                    </Button>
                   )}
-                  <button
-                    type="button"
+                  <Button
+                    variant="danger"
+                    size="sm"
                     onClick={() => {
                       if (
                         confirm(
@@ -321,15 +307,14 @@ function StayList({
                       }
                     }}
                     disabled={isPending}
-                    className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
                   >
                     Delete
-                  </button>
+                  </Button>
                 </div>
               </li>
             ),
           )}
-        </ul>
+        </Card>
       )}
     </div>
   );
@@ -359,7 +344,7 @@ function ResidentFields({
     setForm((f) => ({ ...f, ...patch }));
   }
   return (
-    <div className={onCancel ? "" : "rounded-lg border border-gray-200 bg-white p-4"}>
+    <Card variant="box">
       <h3 className="text-sm font-semibold">{title}</h3>
       {hint && <p className="mt-0.5 text-xs text-gray-500">{hint}</p>}
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -382,26 +367,16 @@ function ResidentFields({
         <Field label="Emergency contact" value={form.emergency_contact} onChange={(v) => set({ emergency_contact: v })} />
       </div>
       <div className="mt-3 flex gap-2">
-        <button
-          type="button"
-          onClick={() => onSubmit(form, () => setForm(EMPTY))}
-          disabled={disabled}
-          className="rounded-md bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-dark disabled:opacity-50"
-        >
+        <Button onClick={() => onSubmit(form, () => setForm(EMPTY))} disabled={disabled}>
           {submitLabel}
-        </button>
+        </Button>
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={disabled}
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
-          >
+          <Button variant="subtle" onClick={onCancel} disabled={disabled}>
             Cancel
-          </button>
+          </Button>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 

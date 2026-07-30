@@ -17,9 +17,20 @@ const BUTTON_VARIANT = {
   /** Tertiary/neutral action (cancel, print). */
   subtle:
     "rounded-md border border-gray-300 font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50",
+  /** Destructive action (delete). Red is functional, never decorative. */
+  danger:
+    "rounded-md border border-red-300 font-medium text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50",
+  /**
+   * Accent-chip action for a step that needs attention (finish signatures,
+   * record a waiver). The one interactive use of the accent.
+   */
+  attention:
+    "rounded-md border-l-4 border-accent bg-accent-soft font-semibold text-ink transition-colors hover:bg-accent disabled:opacity-50",
 } as const;
 
 const BUTTON_SIZE = {
+  /** The big screen-level action (save a form, finalize a flow). Base text. */
+  lg: "px-4 py-2.5",
   md: "px-4 py-2 text-sm",
   /** Compact — inline row actions and chip-sized controls. */
   sm: "px-3 py-1.5 text-xs",

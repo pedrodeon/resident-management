@@ -7,6 +7,7 @@ import {
   type HallwayChoice,
 } from "@/components/admin/staff-manager";
 import type { StaffRole } from "@/lib/types";
+import { PageTitle } from "@/components/ui/typography";
 
 type StaffRow = {
   id: string;
@@ -45,7 +46,7 @@ export default async function AdminStaffPage() {
         <BackLink href="/admin" label="Admin" />
       </div>
 
-      <h1 className="text-2xl font-semibold text-navy">Staff</h1>
+      <PageTitle>Staff</PageTitle>
       <p className="mt-1 text-sm text-gray-500">
         Hallway coverage is metadata only — every staff member can access every
         hallway regardless.
