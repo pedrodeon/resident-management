@@ -118,7 +118,7 @@ export function MaintenanceForm() {
       </Card>
 
       <Alert tone="info" icon>
-        Submitting emails the maintenance contacts with a copy to you, and adds
+        Submitting emails the Resident Director with a copy to you, and adds
         the request to the open list so anyone can mark it done once fixed.
       </Alert>
 

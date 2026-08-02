@@ -42,7 +42,7 @@ export default async function IncidentReportPage() {
       <Card variant="sheet" className="mt-6">
         <IncidentForm
           rooms={roomOptions}
-          recipientsHint="the configured incident contacts"
+          recipientsHint="the Resident Director"
         />
       </Card>
     </section>

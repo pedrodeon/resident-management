@@ -126,9 +126,12 @@ actions — the API key never reaches the browser. Add to `.env.local`:
 ```
 RESEND_API_KEY=...                      # server-only
 EMAIL_FROM="Tudor Hall <reports@...>"   # a sender on your verified domain
-INCIDENT_EMAIL_TO=a@x.edu,b@y.edu       # comma-separated
-MAINTENANCE_EMAIL_TO=facilities@x.edu
+RD_EMAIL=rd@your-university.edu         # both report types go to the RD
 ```
+
+Both forms email the RD; the sender stays the app's verified address (Resend
+requires it), so "who filed this" travels as the reply-to and a "Filed by"
+line in the body — replying reaches the filer directly.
 
 Until these are set, submitting a form shows a clear "email isn't configured"
 error; maintenance requests are still saved to their list either way.

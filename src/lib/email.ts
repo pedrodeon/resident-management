@@ -7,8 +7,7 @@ import "server-only";
  *   RESEND_API_KEY        server-only key; `server-only` above makes any
  *                         client-side import a build error
  *   EMAIL_FROM            verified sender, e.g. "Tudor Hall <reports@…>"
- *   INCIDENT_EMAIL_TO     comma-separated incident recipients
- *   MAINTENANCE_EMAIL_TO  comma-separated maintenance recipients
+ *   RD_EMAIL              where both report types go — the RD's address
  *
  * Emails are plain text on purpose: they must read identically in every
  * client, and there is nothing here that needs layout.

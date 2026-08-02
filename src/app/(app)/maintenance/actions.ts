@@ -71,7 +71,7 @@ export async function submitMaintenance(
   ].join("\n");
 
   const email = await sendEmail({
-    to: recipientsFromEnv("MAINTENANCE_EMAIL_TO"),
+    to: recipientsFromEnv("RD_EMAIL"),
     cc: staff.email ? [staff.email] : undefined,
     replyTo: staff.email ?? undefined,
     subject: `Maintenance request — Tudor Hall — ${location}`,

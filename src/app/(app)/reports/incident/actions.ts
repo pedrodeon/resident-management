@@ -19,8 +19,9 @@ export type IncidentResult = { ok: true } | { ok: false; error: string };
 /**
  * File an incident report. EMAIL ONLY, by design: incident narratives can
  * concern named students, so nothing is written to the database — the report
- * goes to the incident recipients (INCIDENT_EMAIL_TO), cc the filer, reply-to
- * the filer. The filer is the logged-in staff member, never a form field.
+ * goes to the RD (RD_EMAIL), cc the filer, reply-to the filer so a reply
+ * reaches whoever filed it. The filer is the logged-in staff member, never a
+ * form field.
  * Reports are not tied to a resident record; anyone involved is named in the
  * free-text fields.
  */
@@ -83,7 +84,7 @@ export async function submitIncident(
   ].join("\n");
 
   return sendEmail({
-    to: recipientsFromEnv("INCIDENT_EMAIL_TO"),
+    to: recipientsFromEnv("RD_EMAIL"),
     cc: staff.email ? [staff.email] : undefined,
     replyTo: staff.email ?? undefined,
     subject: `Incident report — Tudor Hall — ${date}`,

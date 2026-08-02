@@ -350,14 +350,15 @@ Recorded from the "Room check" button on room detail.
 - `created_at`, `done_by`, `done_at`
 
 Any staff files, reads, and closes/reopens; NO delete policy for any role —
-closed requests are history. Filing also emails MAINTENANCE_EMAIL_TO via
-Resend (row first, then email, so a failed send never loses the request).
+closed requests are history. Filing also emails the RD via Resend (row
+first, then email, so a failed send never loses the request).
 
 **Incident reports are email-only by design** — they concern named students,
-so nothing is stored: the form emails INCIDENT_EMAIL_TO, cc's the filer, and
-sets reply-to to the filer. Email config lives in env vars (RESEND_API_KEY,
-EMAIL_FROM, INCIDENT_EMAIL_TO, MAINTENANCE_EMAIL_TO); sending happens only in
-server actions via src/lib/email.ts (`server-only`).
+so nothing is stored: the form emails the RD, cc's the filer, and sets
+reply-to to the filer (the from address stays the app's verified sender —
+Resend won't send as an arbitrary user). Email config lives in env vars
+(RESEND_API_KEY, EMAIL_FROM, RD_EMAIL — both report types go to RD_EMAIL);
+sending happens only in server actions via src/lib/email.ts (`server-only`).
 
 ### Relationships
 - A hallway has many rooms. A room has many occupancies (its residents).
