@@ -94,13 +94,16 @@ export default async function Dashboard() {
         caption={<>{pct}% of the roster is in the building</>}
       />
 
-      {/* Quick actions — four identical tiles: one even row on wide screens,
-          a clean 2x2 on phones. */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Quick actions — five identical tiles, one row on wide screens,
+          wrapping 2-then-3 per row on phones so nothing squishes. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
         {/* One button for the whole occupancy flow — check-in, check-out, and
             the arrived/not-arrived roster all live on this screen. */}
         <ActionTile href="/desk" label="Check in / out">
           <SwapIcon />
+        </ActionTile>
+        <ActionTile href="/front-desk" label="Front Desk">
+          <CalendarClockIcon />
         </ActionTile>
         <ActionTile href="/room-checks" label="Room checks">
           <ChecklistIcon />
@@ -163,6 +166,27 @@ function Greeting({
       <p className="text-sm text-white/70">{lead}</p>
       <div className="mt-4 flex flex-col gap-5">{children}</div>
     </section>
+  );
+}
+
+function CalendarClockIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M21 10V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5M16 2v4M8 2v4M3 10h18"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="17" cy="17" r="4.5" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M17 15.2V17l1.4 1"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 

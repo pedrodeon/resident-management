@@ -360,6 +360,24 @@ Resend won't send as an arbitrary user). Email config lives in env vars
 (RESEND_API_KEY, EMAIL_FROM, RD_EMAIL — both report types go to RD_EMAIL);
 sending happens only in server actions via src/lib/email.ts (`server-only`).
 
+### desk_shifts (front-desk schedule — added post-v1, part 1 of 2)
+- `id` (uuid, pk)
+- `shift_date` (date)
+- `slot` (int check: 1 | 2) — 1 = 6–8 PM, 2 = 8–10 PM (America/Chicago;
+  `desk_shift_start()` is the one clock for shift starts)
+- `claimed_by` (uuid, fk → users, nullable) — null = open
+- `claimed_at` (timestamptz, moves with claimed_by)
+- unique(shift_date, slot) — also the race guard for simultaneous claims
+
+STAFF data only — no resident information. Rows materialize on first claim
+(nothing is pre-seeded; open = missing row or null claimed_by). No direct
+write policies for anyone: all mutations go through two definer RPCs —
+`claim_desk_shift` (any staff, self only, **refused within 24 hours of the
+shift start** — the timing rule lives in the database) and `set_desk_shift`
+(RD only, no timing limit, assign anyone or clear). The `/front-desk` monthly
+calendar shows claimed shifts as initials avatars and open ones as tappable
+slots. Part 2 (not built): coverage requests and notifications.
+
 ### Relationships
 - A hallway has many rooms. A room has many occupancies (its residents).
 - A person has many occupancies — one per term they lived here.
@@ -493,11 +511,12 @@ Build in this order; each step should be usable before starting the next:
 
 ## Explicitly out of scope for v1
 
-Do not build these yet: package logging, duty/shift
-scheduling, roommate agreements, named/configurable break periods with date
-ranges, damage cost calculation or billing, student self-service, and
-notifications. (Photo attachments, incident reports, and maintenance requests
-have since been built — see the data model above.)
+Do not build these yet: package logging, roommate agreements,
+named/configurable break periods with date ranges, damage cost calculation or
+billing, student self-service, notifications, and front-desk coverage
+requests (part 2 of the desk schedule). (Photo attachments, incident reports,
+maintenance requests, and the front-desk shift calendar — part 1 — have since
+been built; see the data model above.)
 
 ## Working conventions
 
