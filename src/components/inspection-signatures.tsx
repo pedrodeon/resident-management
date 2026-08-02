@@ -144,7 +144,12 @@ export function InspectionSignatures({
         hallwayId,
       );
       if (!result.ok) setError(result.error);
-      else router.refresh();
+      // A finalized check-in gets its confirmation screen no matter which
+      // screen finalized it — same destination as OccupancyGate. The route
+      // re-verifies the status server-side, so a race just bounces back.
+      else if (copy.finalizeType === "check_in") {
+        router.push(`/residents/${occupancyId}/checked-in`);
+      } else router.refresh();
     });
   }
 

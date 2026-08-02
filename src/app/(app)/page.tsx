@@ -94,14 +94,11 @@ export default async function Dashboard() {
         caption={<>{pct}% of the roster is in the building</>}
       />
 
-      {/* Quick actions — five identical tiles, one row on wide screens,
-          wrapping 2-then-3 per row on phones so nothing squishes. */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-        {/* One button for the whole occupancy flow — check-in, check-out, and
-            the arrived/not-arrived roster all live on this screen. */}
-        <ActionTile href="/desk" label="Check in / out">
-          <SwapIcon />
-        </ActionTile>
+      {/* Quick actions — four identical tiles: one even row on wide screens,
+          a clean 2x2 on phones. Check-in/out is deliberately NOT here:
+          occupancy actions start from the resident (room -> resident), not
+          from a building-wide shortcut. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <ActionTile href="/front-desk" label="Front Desk">
           <CalendarClockIcon />
         </ActionTile>
@@ -185,20 +182,6 @@ function CalendarClockIcon() {
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function SwapIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M4 8h13l-3-3m6 11H7l3 3"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </svg>
   );
