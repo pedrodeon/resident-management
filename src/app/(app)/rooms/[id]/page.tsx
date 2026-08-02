@@ -89,21 +89,7 @@ export default async function RoomPage({
     <section>
       <PageHeader back={{ href: `/hallways/${room.hallways.id}`, label: room.hallways.name }} />
 
-      <nav className="text-sm text-white/50">
-        <Link href="/" className="hover:text-white hover:underline">
-          TUDOR HALL
-        </Link>{" "}
-        /{" "}
-        <Link
-          href={`/hallways/${room.hallways.id}`}
-          className="hover:text-white hover:underline"
-        >
-          {room.hallways.name}
-        </Link>{" "}
-        / Room {room.room_number}
-      </nav>
-
-      <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <PageTitle>Room {room.room_number}</PageTitle>
         <span className="text-sm text-white/60">
           {room.current_residents.length} / {room.capacity} residents

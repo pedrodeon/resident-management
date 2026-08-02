@@ -71,22 +71,13 @@ export default async function HallwayPage({
 
   return (
     <section>
-      {/* Canvas zone: back, breadcrumb + context, title, coverage. */}
+      {/* Canvas zone: back, context eyebrow, title, coverage. */}
       <PageHeader back={{ href: "/", label: "TUDOR HALL" }} />
 
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <nav className="text-sm text-white/50">
-          <Link href="/" className="hover:text-white hover:underline">
-            TUDOR HALL
-          </Link>{" "}
-          / {hallway.name}
-        </nav>
-        <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
-          Floor {hallway.floor} · {hallway.wing} wing
-        </p>
-      </div>
-
-      <PageTitle className="mt-3">{hallway.name}</PageTitle>
+      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
+        Floor {hallway.floor} · {hallway.wing} wing
+      </p>
+      <PageTitle className="mt-1">{hallway.name}</PageTitle>
       {coveredBy.length > 0 && (
         <div className="mt-2 flex items-center gap-2">
           <Avatar name={coveredBy[0]} tone="glass" size="sm" />

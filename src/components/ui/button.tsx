@@ -26,6 +26,14 @@ const BUTTON_VARIANT = {
    */
   attention:
     "rounded-full border border-accent-border bg-accent-soft font-semibold text-ink transition-colors hover:bg-accent disabled:opacity-50",
+  /**
+   * Canvas-zone buttons — for actions that sit on the navy gradient itself
+   * (the check-in confirmation screen), where navy-on-white reads wrong.
+   */
+  light:
+    "rounded-full bg-white font-semibold text-navy transition-colors hover:bg-white/90 disabled:opacity-50",
+  ghost:
+    "rounded-full border border-white/30 bg-white/5 font-medium text-white transition-colors hover:bg-white/15 disabled:opacity-50",
 } as const;
 
 const BUTTON_SIZE = {

@@ -82,7 +82,11 @@ export function OccupancyGate({
         resident.hallway_id,
       );
       if (!result.ok) setError(result.error);
-      else router.refresh();
+      // A finalized check-in gets its confirmation screen (the route itself
+      // re-verifies the status, so a race just bounces back here).
+      else if (copy.event === "check_in") {
+        router.push(`/residents/${resident.id}/checked-in`);
+      } else router.refresh();
     });
   }
 

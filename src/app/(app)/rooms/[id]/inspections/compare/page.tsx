@@ -137,18 +137,7 @@ export default async function ComparePage({
     <section>
       <PageHeader back={{ href: `/rooms/${roomId}`, label: left.rooms ? `Room ${left.rooms.room_number}` : "Room" }} />
 
-      <nav className="text-sm text-white/50">
-        <Link href="/" className="hover:text-white hover:underline">
-          TUDOR HALL
-        </Link>{" "}
-        /{" "}
-        <Link href={`/rooms/${roomId}`} className="hover:text-white hover:underline">
-          Room
-        </Link>{" "}
-        / Compare
-      </nav>
-
-      <PageTitle className="mt-2">Compare inspections</PageTitle>
+      <PageTitle>Compare inspections</PageTitle>
 
       <Card variant="sheet" className="mt-6">
       <div className="overflow-x-auto">

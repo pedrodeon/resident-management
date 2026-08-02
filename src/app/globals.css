@@ -26,6 +26,11 @@
   --color-accent-deep: #e09a45; /* border of controls filled with the accent */
   --color-accent-soft: #fbe9d6; /* pale wash for highlighted chips/rows */
 
+  /* Success green — the check-in confirmation screen ONLY. Everywhere else
+     stays navy/orange; green never becomes a general status color. */
+  --color-success: #2eb877; /* the confirmation badge circle */
+  --color-success-bright: #86e7b8; /* green text/dot on the navy canvas */
+
   --color-ink: #11141b; /* body text (blue-tinted near-black) */
   --color-muted: #737c90; /* secondary text on white */
   --color-faint: #8a93a6; /* tertiary text, tiny uppercase captions */
