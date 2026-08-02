@@ -1,14 +1,6 @@
 import Link from "next/link";
 import { getStaffContext } from "@/lib/auth";
 
-const SECTIONS = [
-  { href: "/admin/residents", label: "Residents" },
-  { href: "/admin/rooms", label: "Rooms" },
-  { href: "/admin/staff", label: "Staff" },
-  { href: "/admin/inventory", label: "Inventory" },
-  { href: "/admin/reports", label: "Reports" },
-];
-
 /**
  * RD-only area. RLS already gates every write to the RD; this is the UI guard
  * (defense-in-depth) so RAs never see admin controls at all.
@@ -32,23 +24,7 @@ export default async function AdminLayout({
     );
   }
 
-  return (
-    <div>
-      <div className="flex flex-wrap gap-2 border-b border-white/10 pb-3">
-        <Link href="/admin" className="text-sm font-semibold text-white hover:underline">
-          Admin
-        </Link>
-        {SECTIONS.map((s) => (
-          <Link
-            key={s.href}
-            href={s.href}
-            className="text-sm text-white/60 hover:text-white hover:underline"
-          >
-            · {s.label}
-          </Link>
-        ))}
-      </div>
-      <div className="mt-6">{children}</div>
-    </div>
-  );
+  // No sub-nav up here: the Admin index's cards are the navigation, and each
+  // section's back circle returns to it.
+  return <>{children}</>;
 }

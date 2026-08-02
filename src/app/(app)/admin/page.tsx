@@ -7,6 +7,7 @@ const CARDS = [
   { href: "/admin/rooms", label: "Rooms", desc: "Manage rooms within each hallway." },
   { href: "/admin/staff", label: "Staff", desc: "Invite and remove RAs; assign hallway coverage." },
   { href: "/admin/inventory", label: "Inventory template", desc: "Edit the room-inspection checklist." },
+  { href: "/admin/reports", label: "Reports", desc: "Weekly RA activity — room checks and front desk shifts." },
 ];
 
 export default function AdminIndex() {
@@ -16,9 +17,14 @@ export default function AdminIndex() {
 
       <PageTitle>Admin</PageTitle>
       <Card variant="sheet" className="mt-6">
+      {/* Five cards: single column on phones; two columns from sm:, with the
+          odd last card stretching full width so no cell sits empty. */}
       <ul className="grid gap-3 sm:grid-cols-2">
-        {CARDS.map((c) => (
-          <li key={c.href}>
+        {CARDS.map((c, i) => (
+          <li
+            key={c.href}
+            className={i === CARDS.length - 1 && CARDS.length % 2 === 1 ? "sm:col-span-2" : undefined}
+          >
             <CardLink variant="row" href={c.href}>
               <div>
                 <span className="font-semibold text-navy">{c.label}</span>
