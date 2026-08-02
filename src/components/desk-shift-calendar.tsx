@@ -52,6 +52,7 @@ export function DeskShiftCalendar({
   staff,
   meId,
   isRd,
+  nowMs,
 }: {
   year: number;
   month: number; // 1–12
@@ -59,6 +60,9 @@ export function DeskShiftCalendar({
   staff: StaffRow[];
   meId: string | null;
   isRd: boolean;
+  /** Server render time — lock states derive from it, keeping render pure.
+      Every shift action revalidates the page, so it stays current. */
+  nowMs: number;
 }) {
   const [error, setError] = useState<string | null>(null);
   // RD assignment target, or null when the picker is closed.
@@ -180,7 +184,7 @@ export function DeskShiftCalendar({
 
   const ownPanelState = ownPanel ? slotState(ownPanel.date, ownPanel.slot) : null;
   const ownPanelLocked = ownPanel
-    ? shiftStartMs(ownPanel.date, ownPanel.slot) - Date.now() < LOCK_MS
+    ? shiftStartMs(ownPanel.date, ownPanel.slot) - nowMs < LOCK_MS
     : false;
 
   return (
@@ -338,9 +342,9 @@ export function DeskShiftCalendar({
               </p>
               {SHIFT_SLOTS.map(({ slot, label, short, startHour }) => {
                 const { owner, cover } = slotState(date, slot);
-                const start = new Date(year, month - 1, day, startHour);
-                const locked = start.getTime() - Date.now() < LOCK_MS;
-                const started = start.getTime() <= Date.now();
+                const start = new Date(year, month - 1, day, startHour).getTime();
+                const locked = start - nowMs < LOCK_MS;
+                const started = start <= nowMs;
                 const mine = owner !== null && owner === meId;
                 const ownerName = owner ? (nameOf.get(owner) ?? "staff") : null;
 

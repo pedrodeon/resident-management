@@ -104,6 +104,7 @@ export default async function FrontDeskPage({
           staff={staff ?? []}
           meId={staffContext?.id ?? null}
           isRd={staffContext?.role === "rd"}
+          nowMs={now.getTime()}
         />
       </Card>
     </section>
