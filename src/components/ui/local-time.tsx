@@ -6,7 +6,7 @@ const subscribe = () => () => {};
 
 /**
  * A fixed timestamp formatted in the viewer's own timezone and locale.
- * Same trick as LocalDate: the server snapshot is null, so SSR emits a
+ * The server snapshot is null, so SSR emits a
  * placeholder and the real value hydrates in without a mismatch.
  *
  * Shows just the time ("7:04 AM") when the moment is today; older moments
