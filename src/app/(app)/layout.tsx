@@ -43,6 +43,9 @@ export default async function AppLayout({
   }
   // "allow": staff is guaranteed non-null; this also narrows it for TS.
   if (!staff) redirect("/no-access");
+  // Seeded temporary password: nothing in the app until they set their own.
+  // /change-password lives outside this layout, so no redirect loop.
+  if (staff.mustChangePassword) redirect("/change-password");
   const isRd = staff.role === "rd";
   const unseen = await unseenNotificationCount(staff.id);
 

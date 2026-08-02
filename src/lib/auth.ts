@@ -6,6 +6,8 @@ export type StaffContext = {
   email: string | null;
   name: string;
   role: StaffRole;
+  /** Seeded with a temporary password; must set their own before using the app. */
+  mustChangePassword: boolean;
 };
 
 export type AccessState = {
@@ -32,7 +34,7 @@ export async function getAccessState(): Promise<AccessState> {
 
   const { data: staff } = await supabase
     .from("users")
-    .select("id, name, role")
+    .select("id, name, role, must_change_password")
     .eq("id", user.id)
     .single();
 
@@ -44,6 +46,7 @@ export async function getAccessState(): Promise<AccessState> {
           email: user.email ?? null,
           name: staff.name,
           role: staff.role as StaffRole,
+          mustChangePassword: staff.must_change_password === true,
         }
       : null,
   };

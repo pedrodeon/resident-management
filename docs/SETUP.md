@@ -136,6 +136,18 @@ line in the body — replying reaches the filer directly.
 Until these are set, submitting a form shows a clear "email isn't configured"
 error; maintenance requests are still saved to their list either way.
 
+## Seeding the real RA accounts
+
+`npm run seed:ras` creates the real staff accounts from
+`scripts/ra-roster.json` (copy `ra-roster.example.json`; the real file is
+gitignored — staff names/emails stay off the repo). All new accounts share
+one temporary password from `RA_TEMP_PASSWORD` in `.env.local` (min 10
+chars, never hardcoded) and are created as the auth-user + users-row PAIR
+with `must_change_password = TRUE`: on first login the app allows nothing
+but /change-password until they set their own. Safe to re-run — existing
+accounts are never reset or re-flagged; a missing users row is repaired.
+The script prints a per-account summary so you can confirm all 7 RAs.
+
 ## RA weekly report (scheduled send — needs deployment)
 
 Admin → Reports shows the per-RA weekly report (room checks + desk shifts)
