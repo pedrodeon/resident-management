@@ -486,10 +486,14 @@ column-level policies. Not worth the complexity in v1.
    the inspection review → only then can the check-in be finalized (enforced
    by record_occupancy). Check-out mirrors it: move_out inspection → RA signs
    and the resident signs **or** the RA records "unavailable / declined" with
-   a reason → finalize check-out. A finalized check-in lands on a green
-   confirmation screen (`/residents/[occupancy]/checked-in` — the app's only
-   use of green) offering the hallway roster or the next check-in; the route
-   re-verifies `checked_in` server-side and bounces anyone arriving mid-flow.
+   a reason → finalize check-out. Every finalized event lands on its
+   confirmation screen — check-in on the green
+   `/residents/[occupancy]/checked-in` (the app's only use of green),
+   check-out on the glass/navy `/residents/[occupancy]/checked-out` (which
+   also surfaces the waiver reason when the resident didn't sign). Both
+   finalize buttons route through `occupancySuccessPath` in
+   src/lib/occupancy-gate.ts so the two paths can't diverge, and each route
+   re-verifies the status server-side, bouncing anyone arriving mid-flow.
 
 7. **Resident detail** — one STAY, routed by occupancy id: the person's full
    record (room, student ID, contacts) plus this stay's occupancy, presence and

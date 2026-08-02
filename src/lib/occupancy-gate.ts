@@ -50,3 +50,17 @@ export function gateProgress(
       .sort((a, b) => b.signatures - a.signatures)[0] ?? null
   );
 }
+
+/**
+ * Where a successfully recorded occupancy event lands. BOTH finalize buttons
+ * (OccupancyGate and InspectionSignatures) route through this, so the
+ * check-in and check-out confirmations can never diverge again — each
+ * destination re-verifies the status server-side and bounces mid-flow
+ * visitors back to the stay.
+ */
+export function occupancySuccessPath(
+  occupancyId: string,
+  event: "check_in" | "check_out",
+): string {
+  return `/residents/${occupancyId}/${event === "check_in" ? "checked-in" : "checked-out"}`;
+}

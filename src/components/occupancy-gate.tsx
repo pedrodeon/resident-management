@@ -3,7 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { recordOccupancy } from "@/app/(app)/desk/actions";
-import type { GateProgress, OccupancyFlow } from "@/lib/occupancy-gate";
+import {
+  occupancySuccessPath,
+  type GateProgress,
+  type OccupancyFlow,
+} from "@/lib/occupancy-gate";
 import type { OccupancyStatus } from "@/lib/types";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -82,11 +86,9 @@ export function OccupancyGate({
         resident.hallway_id,
       );
       if (!result.ok) setError(result.error);
-      // A finalized check-in gets its confirmation screen (the route itself
-      // re-verifies the status, so a race just bounces back here).
-      else if (copy.event === "check_in") {
-        router.push(`/residents/${resident.id}/checked-in`);
-      } else router.refresh();
+      // Every finalized event gets its confirmation screen; the route
+      // re-verifies the status server-side, so a race just bounces back.
+      else router.push(occupancySuccessPath(resident.id, copy.event));
     });
   }
 

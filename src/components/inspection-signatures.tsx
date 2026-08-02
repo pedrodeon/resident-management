@@ -8,6 +8,7 @@ import {
   waiveResidentSignature,
 } from "@/app/(app)/inspections/[id]/actions";
 import { recordOccupancy } from "@/app/(app)/desk/actions";
+import { occupancySuccessPath } from "@/lib/occupancy-gate";
 import { createClient } from "@/lib/supabase/client";
 import { PHOTO_BUCKET } from "@/lib/photos";
 import type { SignatureRole } from "@/lib/types";
@@ -144,12 +145,11 @@ export function InspectionSignatures({
         hallwayId,
       );
       if (!result.ok) setError(result.error);
-      // A finalized check-in gets its confirmation screen no matter which
-      // screen finalized it — same destination as OccupancyGate. The route
-      // re-verifies the status server-side, so a race just bounces back.
-      else if (copy.finalizeType === "check_in") {
-        router.push(`/residents/${occupancyId}/checked-in`);
-      } else router.refresh();
+      // Every finalized event gets its confirmation screen, no matter which
+      // screen finalized it — the shared path keeps this and OccupancyGate
+      // from ever diverging again. The route re-verifies the status
+      // server-side, so a race just bounces back.
+      else router.push(occupancySuccessPath(occupancyId, copy.finalizeType));
     });
   }
 
