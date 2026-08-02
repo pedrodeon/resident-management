@@ -14,7 +14,12 @@ import { PageTitle, SectionLabel } from "@/components/ui/typography";
 
 export const metadata = { title: "Front Desk — Tudor Hall" };
 
-type ShiftRow = { shift_date: string; slot: number; claimed_by: string | null };
+type ShiftRow = {
+  shift_date: string;
+  slot: number;
+  claimed_by: string | null;
+  coverage_requested_at: string | null;
+};
 type StaffRow = { id: string; name: string; role: string };
 
 const MONTH_NAME = [
@@ -43,7 +48,7 @@ export default async function FrontDeskPage({
   const [{ data: shifts }, { data: staff }] = await Promise.all([
     supabase
       .from("desk_shifts")
-      .select("shift_date, slot, claimed_by")
+      .select("shift_date, slot, claimed_by, coverage_requested_at")
       .gte("shift_date", first)
       .lte("shift_date", last)
       .overrideTypes<ShiftRow[]>(),

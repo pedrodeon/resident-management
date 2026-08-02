@@ -2,7 +2,24 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAccessState } from "@/lib/auth";
 import { accessDecision } from "@/lib/access";
+import { createClient } from "@/lib/supabase/server";
 import { signOut } from "./actions";
+
+/** Notifications newer than the caller's seen-watermark. */
+async function unseenNotificationCount(userId: string): Promise<number> {
+  const supabase = await createClient();
+  const { data: seen } = await supabase
+    .from("notification_seen")
+    .select("seen_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  let query = supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true });
+  if (seen?.seen_at) query = query.gt("created_at", seen.seen_at);
+  const { count } = await query;
+  return count ?? 0;
+}
 
 /**
  * Protected shell for every staff-facing screen. The proxy already redirects
@@ -26,6 +43,7 @@ export default async function AppLayout({
   // "allow": staff is guaranteed non-null; this also narrows it for TS.
   if (!staff) redirect("/no-access");
   const isRd = staff.role === "rd";
+  const unseen = await unseenNotificationCount(staff.id);
 
   const glassPill =
     "whitespace-nowrap rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/20 hover:text-white sm:px-3.5 sm:text-sm";
@@ -54,6 +72,30 @@ export default async function AppLayout({
             )}
           </div>
           <div className="flex shrink-0 items-center gap-3">
+            <Link
+              href="/notifications"
+              aria-label={
+                unseen > 0
+                  ? `Notifications (${unseen} unread)`
+                  : "Notifications"
+              }
+              className="relative flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Zm4 9a2 2 0 0 0 4 0"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {unseen > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-ink">
+                  {unseen > 9 ? "9+" : unseen}
+                </span>
+              )}
+            </Link>
             <span className="hidden text-sm text-white/50 sm:inline">
               {staff.email}
             </span>

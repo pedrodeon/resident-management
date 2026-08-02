@@ -59,6 +59,7 @@ export async function staffClient(email) {
 }
 
 export const RA_EMAIL = "ra1@tudor.test";
+export const RA2_EMAIL = "ra2@tudor.test";
 export const RD_EMAIL = "rd@tudor.test";
 
 /**

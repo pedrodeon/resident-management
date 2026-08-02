@@ -35,3 +35,18 @@ export function addMonths(year: number, month: number, delta: 1 | -1) {
 export function dateKey(year: number, month: number, day: number): string {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
+
+const MONTH_SHORT = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/**
+ * "2026-08-20" + slot → "Aug 20 · 8–10 PM". String parsing on purpose:
+ * `new Date("2026-08-20")` is UTC midnight and shifts a day in Chicago.
+ */
+export function shiftLabel(date: string, slot: number): string {
+  const [, m, d] = date.split("-").map(Number);
+  const slotLabel = SHIFT_SLOTS.find((s) => s.slot === slot)?.label ?? `slot ${slot}`;
+  return `${MONTH_SHORT[m - 1]} ${d} · ${slotLabel}`;
+}

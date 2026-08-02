@@ -13,13 +13,19 @@ export type ShiftResult = { ok: true } | { ok: false; error: string };
  */
 
 async function callRpc(
-  fn: "claim_desk_shift" | "set_desk_shift",
+  fn:
+    | "claim_desk_shift"
+    | "set_desk_shift"
+    | "request_shift_coverage"
+    | "accept_shift_coverage",
   args: Record<string, unknown>,
 ): Promise<ShiftResult> {
   const supabase = await createClient();
   const { error } = await supabase.rpc(fn, args);
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/front-desk");
+  // Layout-wide: every shift mutation writes a notification, and the header
+  // bell count renders in the layout.
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -57,5 +63,40 @@ export async function assignShift(
     target_date: date,
     target_slot: slot,
     target_user: userId,
+  });
+}
+
+/** Flag your own shift as needing cover — allowed any time before it starts. */
+export async function requestCoverage(
+  date: string,
+  slot: ShiftSlot,
+): Promise<ShiftResult> {
+  return callRpc("request_shift_coverage", {
+    target_date: date,
+    target_slot: slot,
+    requesting: true,
+  });
+}
+
+/** Withdraw your own open coverage request (you stay assigned). */
+export async function withdrawCoverage(
+  date: string,
+  slot: ShiftSlot,
+): Promise<ShiftResult> {
+  return callRpc("request_shift_coverage", {
+    target_date: date,
+    target_slot: slot,
+    requesting: false,
+  });
+}
+
+/** Take over a shift that needs cover — first come, first served. */
+export async function acceptCoverage(
+  date: string,
+  slot: ShiftSlot,
+): Promise<ShiftResult> {
+  return callRpc("accept_shift_coverage", {
+    target_date: date,
+    target_slot: slot,
   });
 }
