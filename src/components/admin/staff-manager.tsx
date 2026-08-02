@@ -66,7 +66,8 @@ export function StaffManager({
         <div className="rounded-md border-l-4 border-accent bg-accent-soft px-4 py-3 text-sm text-ink">
           <p className="font-semibold">Account created for {invited.email}.</p>
           <p className="mt-1">
-            Temporary password (shown once — relay it securely, they should change it):{" "}
+            Temporary password (shown once — relay it securely; they&rsquo;ll be
+            required to set their own on first login):{" "}
             <code className="rounded bg-white px-1.5 py-0.5 font-mono">{invited.tempPassword}</code>
           </p>
         </div>

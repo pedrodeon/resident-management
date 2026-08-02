@@ -48,7 +48,16 @@ export async function inviteStaff(
 
   const { error: rowErr } = await admin
     .from("users")
-    .insert({ id: created.user.id, name: cleanName, email: cleanEmail, role });
+    // must_change_password: the account starts on a relayed temp password,
+    // so the app forces a personal one on first login — same rule as the
+    // seed-ra-accounts script.
+    .insert({
+      id: created.user.id,
+      name: cleanName,
+      email: cleanEmail,
+      role,
+      must_change_password: true,
+    });
   if (rowErr) {
     // Roll back the orphaned auth user so a retry can reuse the email.
     await admin.auth.admin.deleteUser(created.user.id);
