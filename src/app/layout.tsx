@@ -24,6 +24,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Tudor Hall",
   description: "Resident management for Tudor Hall staff.",
+  // iOS home screen: the label comes from apple-mobile-web-app-title, the
+  // icon from the apple-touch-icon link (180x180, generated from
+  // public/icon-source.png on a navy square).
+  appleWebApp: { title: "Tudor Hall" },
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({

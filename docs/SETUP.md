@@ -136,6 +136,23 @@ line in the body — replying reaches the filer directly.
 Until these are set, submitting a form shows a clear "email isn't configured"
 error; maintenance requests are still saved to their list either way.
 
+## App icon (home screen)
+
+The home-screen name is "Tudor Hall" (manifest `short_name` +
+`apple-mobile-web-app-title`); the icons in `public/icons/` are generated
+from `public/icon-source.png` — the circular crest centered on a solid
+brand-navy (#16264a) square, since iOS tiles allow no transparency:
+
+- `apple-touch-icon.png` (180×180, iOS home screen)
+- `icon-192.png`, `icon-512.png` (manifest)
+- `icon-512-maskable.png` (crest at 72% for Android's mask safe zone)
+
+To swap in a purpose-built square icon later, either overwrite those four
+files with the same names/sizes, or replace `public/icon-source.png` and
+rerun `python3 scripts/make-icons.py` (needs Pillow). No code changes
+needed; devices refresh the icon when the app is re-added to the home
+screen.
+
 ## Seeding the real RA accounts
 
 `npm run seed:ras` creates the real staff accounts from
