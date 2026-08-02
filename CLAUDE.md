@@ -517,7 +517,13 @@ the tab bar.
 
 8. **Admin (RD only)** — residents, rooms, staff invites, hallway coverage, the
    inventory item template, and the **current term**. Also archives/unarchives a
-   stay (the only way `is_archived` becomes true through the app).
+   stay (the only way `is_archived` becomes true through the app). Admin →
+   Reports holds the **RA weekly report** (per-RA room-check + desk-shift
+   counts, Sun–Sat weeks in America/Chicago, zeros listed, staff data only):
+   viewable on demand, emailable to RD_EMAIL, and — once deployed — sent
+   automatically every Saturday 9 PM by /api/cron/weekly-report
+   (CRON_SECRET-protected; first automatic send 2026-08-22; one shared
+   builder in src/lib/ra-report.ts serves both triggers).
 
 9. **New or returning student** (`/admin/residents/new`, RD only) — the one way
    a resident enters the roster, so the duplicate guard and the archive rule

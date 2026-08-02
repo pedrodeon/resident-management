@@ -136,6 +136,23 @@ line in the body — replying reaches the filer directly.
 Until these are set, submitting a form shows a clear "email isn't configured"
 error; maintenance requests are still saved to their list either way.
 
+## RA weekly report (scheduled send — needs deployment)
+
+Admin → Reports shows the per-RA weekly report (room checks + desk shifts)
+on demand and can email it to RD_EMAIL immediately. The **automatic** send —
+every Saturday 9:00 PM America/Chicago, first one 2026-08-22 — only fires on
+an always-on host. To activate it, deploy to Vercel:
+
+1. Deploy the repo (`vercel.json` ships the two cron schedules — 02:00 and
+   03:00 UTC Sunday; the endpoint itself picks whichever is 9 PM Chicago, so
+   DST is handled. Hobby plan allows exactly 2 cron jobs — this uses both).
+2. Set the same env vars as `.env.local` in the Vercel project, **plus
+   `CRON_SECRET`** (any long random string, e.g. `openssl rand -hex 32`).
+   Vercel sends it as the Bearer token on cron requests;
+   `/api/cron/weekly-report` rejects everything else with 401.
+3. Nothing else — the endpoint refuses to send before 2026-08-22 even if
+   deployed early.
+
 ## Notes for later
 
 - **The current term** lives in the single-row `app_settings` table, seeded

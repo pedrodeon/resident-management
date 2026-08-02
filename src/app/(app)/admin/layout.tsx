@@ -6,6 +6,7 @@ const SECTIONS = [
   { href: "/admin/rooms", label: "Rooms" },
   { href: "/admin/staff", label: "Staff" },
   { href: "/admin/inventory", label: "Inventory" },
+  { href: "/admin/reports", label: "Reports" },
 ];
 
 /**

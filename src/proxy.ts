@@ -10,9 +10,11 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Run on all request paths except static assets and image files, so the
-     * staff auth session is refreshed on every real navigation.
+     * Run on all request paths except static assets, image files, and the
+     * cron API (machine-to-machine: it has no browser session and does its
+     * own CRON_SECRET bearer check — bouncing it to /login would break the
+     * scheduled report).
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/cron|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
