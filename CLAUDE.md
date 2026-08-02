@@ -446,6 +446,15 @@ column-level policies. Not worth the complexity in v1.
 
 ## Screens (v1)
 
+**Navigation:** a fixed bottom tab bar is the primary nav — Home, Roster,
+Front Desk, plus Admin for the RD (`src/components/bottom-nav.tsx`). The
+Roster tab (`/roster`) sends an RA straight to their assigned hallway's
+roster and gives the RD (or an unassigned RA) a hallway picker. The slim top
+header holds only account items: the notifications bell, the user's email,
+and Sign out. Incident report, Maintenance, Room checks, and check-in/out
+(room → resident) are reached from the dashboard tiles and their flows, not
+the tab bar.
+
 1. **Login** — staff email/password via Supabase Auth.
 
 2. **Dashboard — titled "TUDOR HALL".** Under the title, a list of **all 8

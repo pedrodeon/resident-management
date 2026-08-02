@@ -1,6 +1,12 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Sora, Geist_Mono } from "next/font/google";
 import "./globals.css";
+
+// viewportFit: cover lets env(safe-area-inset-bottom) resolve on iOS, so the
+// fixed bottom tab bar sits above the home indicator instead of under it.
+export const viewport: Viewport = {
+  viewportFit: "cover",
+};
 
 // Sora is the v2 design's typeface (design-mockups/hallway-v2.html). Loaded at
 // build time via next/font — self-hosted, no runtime Google request. Geist Mono

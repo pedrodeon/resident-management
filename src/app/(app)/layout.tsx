@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getAccessState } from "@/lib/auth";
 import { accessDecision } from "@/lib/access";
 import { createClient } from "@/lib/supabase/server";
+import { BottomNav } from "@/components/bottom-nav";
 import { signOut } from "./actions";
 
 /** Notifications newer than the caller's seen-watermark. */
@@ -55,22 +56,9 @@ export default async function AppLayout({
     // paint above the canvas glow orbs (positioned pseudo-elements).
     <div className="canvas-v2 flex min-h-screen flex-col overflow-x-clip">
       <header className="relative">
-        {/* flex-wrap: on very narrow phones the Sign out group drops to a
-            second line instead of forcing a horizontal page scroll. */}
-        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-2 gap-y-1 px-4 py-3 sm:gap-4 sm:px-6">
-          <div className="flex items-center gap-2 sm:gap-5">
-            <Link href="/" className={glassPill}>
-              Home
-            </Link>
-            <Link href="/desk" className={glassPill}>
-              Check in / out
-            </Link>
-            {isRd && (
-              <Link href="/admin" className={glassPill}>
-                Admin
-              </Link>
-            )}
-          </div>
+        {/* Slim account strip: bell, email, sign out — primary navigation
+            lives in the bottom tab bar, never up here. */}
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-end gap-3 px-4 py-3 sm:px-6">
           <div className="flex shrink-0 items-center gap-3">
             <Link
               href="/notifications"
@@ -108,9 +96,13 @@ export default async function AppLayout({
         </div>
       </header>
 
-      <main className="relative mx-auto w-full max-w-5xl flex-1 px-4 pb-10 pt-4 sm:px-6">
+      {/* pb-28: room for the fixed bottom tab bar (plus its safe-area pad),
+          so no screen's last content can hide behind it. */}
+      <main className="relative mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-4 sm:px-6">
         {children}
       </main>
+
+      <BottomNav isRd={isRd} />
     </div>
   );
 }
