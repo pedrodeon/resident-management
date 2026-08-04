@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getStaffContext } from "@/lib/auth";
+import {
+  loadInspectionRecord,
+  recordComplete,
+  sortedItems,
+} from "@/lib/inspection-record";
 import { PHOTO_BUCKET } from "@/lib/photos";
 import {
   renderInspectionPdf,
@@ -9,38 +14,10 @@ import {
   type PdfSignature,
 } from "@/lib/inspection-pdf";
 
-type Row = {
-  id: string;
-  type: "move_in" | "move_out" | "periodic";
-  timestamp: string;
-  notes: string | null;
-  rooms: { room_number: string; hallways: { name: string } | null } | null;
-  occupancies: {
-    term: string;
-    people: { full_name: string; student_id: string } | null;
-  } | null;
-  users: { name: string } | null;
-  inspection_signatures: {
-    role: "resident" | "ra";
-    storage_path: string;
-    signed_at: string;
-    captured: { name: string } | null;
-  }[];
-  inspection_signature_waivers: {
-    reason: string;
-    created_at: string;
-    users: { name: string } | null;
-  } | null;
-  inspection_items: {
-    condition: string;
-    note: string | null;
-    inventory_items: { name: string; sort_order: number } | null;
-    inspection_photos: { storage_path: string }[];
-  }[];
-};
-
 /**
- * The inspection record as a PDF — the damage-liability document.
+ * The inspection record as a PDF — the damage-liability document. Loads
+ * through the same `loadInspectionRecord` as the on-screen record view, so
+ * the two can never disagree.
  *
  * Read-only by construction: every read (rows AND storage blobs) goes
  * through the caller's RLS-scoped client, and only completed records —
@@ -58,24 +35,9 @@ export async function GET(
 
   const { id } = await params;
   const supabase = await createClient();
-  const { data: inspection, error } = await supabase
-    .from("inspections")
-    .select(
-      `id, type, timestamp, notes,
-       rooms ( room_number, hallways ( name ) ),
-       occupancies ( term, people ( full_name, student_id ) ),
-       users:inspected_by ( name ),
-       inspection_signatures ( role, storage_path, signed_at, captured:captured_by ( name ) ),
-       inspection_signature_waivers ( reason, created_at, users:waived_by ( name ) ),
-       inspection_items ( condition, note,
-                          inventory_items ( name, sort_order ),
-                          inspection_photos ( storage_path ) )`,
-    )
-    .eq("id", id)
-    .single()
-    .overrideTypes<Row>();
+  const inspection = await loadInspectionRecord(supabase, id);
 
-  if (error || !inspection || !inspection.rooms || !inspection.occupancies) {
+  if (!inspection || !inspection.rooms || !inspection.occupancies) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
   if (inspection.type === "periodic") {
@@ -84,11 +46,7 @@ export async function GET(
       { status: 409 },
     );
   }
-
-  const roles = new Set(inspection.inspection_signatures.map((s) => s.role));
-  const waiver = inspection.inspection_signature_waivers;
-  const complete = roles.has("ra") && (roles.has("resident") || waiver !== null);
-  if (!complete) {
+  if (!recordComplete(inspection)) {
     return NextResponse.json(
       { error: "this inspection is not fully signed yet" },
       { status: 409 },
@@ -102,9 +60,9 @@ export async function GET(
   };
 
   const resident = inspection.occupancies.people;
-  const items = [...inspection.inspection_items].sort(
-    (a, b) => (a.inventory_items?.sort_order ?? 0) - (b.inventory_items?.sort_order ?? 0),
-  );
+  const items = sortedItems(inspection);
+  const roles = new Set(inspection.inspection_signatures.map((s) => s.role));
+  const waiver = inspection.inspection_signature_waivers;
 
   const signatures: PdfSignature[] = await Promise.all(
     inspection.inspection_signatures.map(async (s) => ({
@@ -118,15 +76,13 @@ export async function GET(
     })),
   );
 
-  const photos: PdfPhoto[] = (
-    await Promise.all(
-      items.flatMap((item) =>
-        item.inspection_photos.map(async (p) => ({
-          itemName: item.inventory_items?.name ?? "Item",
-          jpeg: await download(p.storage_path),
-        })),
-      ),
-    )
+  const photos: PdfPhoto[] = await Promise.all(
+    items.flatMap((item) =>
+      item.inspection_photos.map(async (p) => ({
+        itemName: item.inventory_items?.name ?? "Item",
+        jpeg: await download(p.storage_path),
+      })),
+    ),
   );
 
   const data: InspectionPdfData = {

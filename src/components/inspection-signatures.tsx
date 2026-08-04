@@ -21,6 +21,9 @@ export type StoredSignature = {
   role: SignatureRole;
   url: string; // signed URL
   signed_at: string;
+  /** Who actually signed (from captured_by) — a stored RA signature must be
+      labeled with the signer, not whoever happens to be viewing. */
+  signerName?: string;
 };
 
 export type StoredWaiver = {
@@ -175,7 +178,7 @@ export function InspectionSignatures({
           onWaive={waive}
         />
         <SignatureBlock
-          title={`RA signature — ${staffName}`}
+          title={`RA signature — ${byRole("ra")?.signerName ?? staffName}`}
           attestation={copy.raAttestation}
           existing={byRole("ra")}
           waiver={null}

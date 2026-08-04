@@ -1,6 +1,11 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getStaffContext } from "@/lib/auth";
+import {
+  loadInspectionRecord,
+  recordComplete,
+  sortedItems,
+} from "@/lib/inspection-record";
 import { ConditionChip } from "@/components/condition-chip";
 import {
   InspectionSignatures,
@@ -8,46 +13,12 @@ import {
   type StoredWaiver,
 } from "@/components/inspection-signatures";
 import { PHOTO_BUCKET } from "@/lib/photos";
-import type { InspectionType, ItemCondition, SignatureRole } from "@/lib/types";
+import type { InspectionType } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { LocalTime } from "@/components/ui/local-time";
 import { PageTitle } from "@/components/ui/typography";
 import { PageHeader } from "@/components/ui/page-header";
-
-type InspectionDetail = {
-  id: string;
-  type: InspectionType;
-  timestamp: string;
-  notes: string | null;
-  rooms: { id: string; room_number: string; hallways: { id: string; name: string } | null } | null;
-  // The occupancies TABLE, not the current_residents view: a dispute may be
-  // read years later, when that stay is archived or from a past term, and the
-  // snapshot must still name who it was about.
-  occupancies: {
-    id: string;
-    occupancy_status: string;
-    term: string;
-    people: { full_name: string } | null;
-  } | null;
-  users: { name: string } | null;
-  inspection_signatures: {
-    role: SignatureRole;
-    storage_path: string;
-    signed_at: string;
-  }[];
-  inspection_signature_waivers: {
-    reason: string;
-    created_at: string;
-    users: { name: string } | null;
-  } | null;
-  inspection_items: {
-    id: string;
-    condition: ItemCondition;
-    note: string | null;
-    inventory_items: { name: string; sort_order: number } | null;
-    inspection_photos: { id: string; storage_path: string }[];
-  }[];
-};
 
 const TYPE_LABEL: Record<InspectionType, string> = {
   move_in: "Move-in",
@@ -55,6 +26,13 @@ const TYPE_LABEL: Record<InspectionType, string> = {
   periodic: "Periodic",
 };
 
+/**
+ * The read-only record view of one inspection. Strictly a viewer: it loads
+ * through the same `loadInspectionRecord` the PDF export uses (so screen and
+ * document can never disagree) and renders nothing editable — the only
+ * mutations reachable from here are the signature/waiver steps while a
+ * record is still incomplete, which belong to the check-in/out flow itself.
+ */
 export default async function InspectionPage({
   params,
 }: {
@@ -62,28 +40,10 @@ export default async function InspectionPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: inspection, error } = await supabase
-    .from("inspections")
-    .select(
-      `id, type, timestamp, notes,
-       rooms ( id, room_number, hallways ( id, name ) ),
-       occupancies ( id, occupancy_status, term, people ( full_name ) ),
-       users:inspected_by ( name ),
-       inspection_signatures ( role, storage_path, signed_at ),
-       inspection_signature_waivers ( reason, created_at, users:waived_by ( name ) ),
-       inspection_items ( id, condition, note,
-                          inventory_items ( name, sort_order ),
-                          inspection_photos ( id, storage_path ) )`,
-    )
-    .eq("id", id)
-    .single()
-    .overrideTypes<InspectionDetail>();
+  const inspection = await loadInspectionRecord(supabase, id);
 
-  if (error || !inspection || !inspection.rooms) notFound();
+  if (!inspection || !inspection.rooms) notFound();
 
-  // The attestation step applies to move-in and move-out inspections tied to a
-  // stay. The gate: RA signature AND (resident signature OR, for move-out only,
-  // a recorded waiver).
   const stay = inspection.occupancies;
   const residentName = stay?.people?.full_name ?? null;
   const signable =
@@ -91,14 +51,8 @@ export default async function InspectionPage({
     stay !== null;
   const staff = signable ? await getStaffContext() : null;
   const waiverRow = inspection.inspection_signature_waivers;
-  const roles = new Set(inspection.inspection_signatures.map((s) => s.role));
-  const gateSatisfied =
-    roles.has("ra") && (roles.has("resident") || waiverRow !== null);
-
-  const items = [...inspection.inspection_items].sort(
-    (a, b) =>
-      (a.inventory_items?.sort_order ?? 0) - (b.inventory_items?.sort_order ?? 0),
-  );
+  const complete = recordComplete(inspection);
+  const items = sortedItems(inspection);
 
   // Short-lived signed URLs for the private bucket, minted under the caller's
   // RLS — only staff who can SELECT the objects get URLs. Never public URLs.
@@ -126,12 +80,12 @@ export default async function InspectionPage({
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <PageTitle>{TYPE_LABEL[inspection.type]} inspection</PageTitle>
-        {signable && !gateSatisfied && (
+        {signable && !complete && (
           <Badge tone="attention">awaiting signatures</Badge>
         )}
         {/* The liability record: only a COMPLETE inspection (both halves of
             the signature gate) exports; the route re-checks the same rule. */}
-        {signable && gateSatisfied && (
+        {signable && complete && (
           <a
             href={`/api/inspections/${inspection.id}/pdf`}
             className="rounded-full border border-white/30 bg-white/5 px-3.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/15"
@@ -142,13 +96,46 @@ export default async function InspectionPage({
       </div>
 
 <Card variant="sheet" className="mt-6">
+      {/* The record header — who, where, when, by whom. Same fields the PDF
+          prints, from the same loader. */}
+      <Card as="dl" variant="box" className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
+        <div className="flex justify-between gap-4">
+          <dt className="text-gray-500">Resident</dt>
+          <dd className="font-medium">{residentName ?? "—"}</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-gray-500">Student ID</dt>
+          <dd className="font-mono">{stay?.people?.student_id ?? "—"}</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-gray-500">Room</dt>
+          <dd>
+            {room.hallways ? `${room.hallways.name} · ` : ""}Room {room.room_number}
+          </dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-gray-500">Term</dt>
+          <dd>{stay?.term ?? "—"}</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-gray-500">{complete ? "Completed" : "Recorded"}</dt>
+          <dd>
+            <LocalTime iso={inspection.timestamp} />
+          </dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-gray-500">Conducted by</dt>
+          <dd>{inspection.users?.name ?? "—"}</dd>
+        </div>
+      </Card>
+
       {inspection.notes && (
-        <Card as="p" variant="note">
+        <Card as="p" variant="note" className="mt-4">
           {inspection.notes}
         </Card>
       )}
 
-      <Card as="ul" variant="list" className="mt-4 first:mt-0">
+      <Card as="ul" variant="list" className="mt-4">
         {items.map((item) => (
           <li
             key={item.id}
@@ -193,7 +180,8 @@ export default async function InspectionPage({
       </Card>
 
       {/* Attestations: resident + RA sign against this exact snapshot; the
-          check-in / check-out cannot be finalized until the gate is met. */}
+          check-in / check-out cannot be finalized until the gate is met. On a
+          completed record this renders the stored images read-only. */}
       {signable && stay && (
         <InspectionSignatures
           mode={inspection.type as "move_in" | "move_out"}
@@ -207,7 +195,17 @@ export default async function InspectionPage({
             (s): StoredSignature[] => {
               const url = signedByPath.get(s.storage_path);
               return url
-                ? [{ role: s.role, url, signed_at: s.signed_at }]
+                ? [
+                    {
+                      role: s.role,
+                      url,
+                      signed_at: s.signed_at,
+                      // The RA label must name who SIGNED (captured_by), not
+                      // whoever is viewing the record.
+                      signerName:
+                        s.role === "ra" ? s.captured?.name : undefined,
+                    },
+                  ]
                 : [];
             },
           )}
