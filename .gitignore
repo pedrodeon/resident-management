@@ -50,3 +50,5 @@ next-env.d.ts
 
 # Real staff roster for scripts/seed-ra-accounts.mjs — names/emails stay local.
 scripts/ra-roster.json
+data/
+data/residents.csv
