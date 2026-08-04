@@ -43,7 +43,7 @@ type StayDetail = {
     room_number: string;
     hallways: { id: string; name: string } | null;
   } | null;
-  inspections: GateInspection[];
+  inspections: (GateInspection & { timestamp: string })[];
 };
 
 type OccupancyRow = {
@@ -105,7 +105,7 @@ export default async function ResidentPage({
                   occupancies ( id, term, occupancy_status, is_archived,
                                 rooms ( room_number, hallways ( name ) ) ) ),
          rooms ( id, room_number, hallways ( id, name ) ),
-         inspections ( id, type, inspection_signatures ( role ),
+         inspections ( id, type, timestamp, inspection_signatures ( role ),
                        inspection_signature_waivers ( id ) )`,
       )
       .eq("id", id)
@@ -170,6 +170,23 @@ export default async function ResidentPage({
     stay.inspections,
     "move_out",
   )?.inspectionId;
+
+  // The stay's move-in / move-out records, oldest first. "Complete" mirrors
+  // record_occupancy's signature gate: RA half plus resident half or waiver.
+  const inspectionRecords = stay.inspections
+    .filter((i) => i.type === "move_in" || i.type === "move_out")
+    .map((i) => {
+      const roles = new Set(i.inspection_signatures.map((sig) => sig.role));
+      return {
+        id: i.id,
+        type: i.type,
+        timestamp: i.timestamp,
+        complete:
+          roles.has("ra") &&
+          (roles.has("resident") || i.inspection_signature_waivers !== null),
+      };
+    })
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
   const roomOptions: RoomOption[] = (
     (rooms as { id: string; room_number: string; hallways: { name: string } | null }[] | null) ?? []
@@ -274,6 +291,49 @@ export default async function ResidentPage({
             currentRoomId={stay.room_id}
             rooms={roomOptions}
           />
+        </div>
+      )}
+
+      {/* Inspections — the stay's move-in / move-out records. A COMPLETE one
+          (both signature halves, or the move-out waiver) exports as the PDF
+          liability document; the API route re-checks the same gate. */}
+      {inspectionRecords.length > 0 && (
+        <div className="mt-8">
+          <SectionLabel>Inspections</SectionLabel>
+          <Card as="ul" variant="list" className="mt-2">
+            {inspectionRecords.map((rec) => (
+              <li
+                key={rec.id}
+                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5"
+              >
+                <div>
+                  <p className="text-sm font-medium text-ink">
+                    {rec.type === "move_in" ? "Move-in" : "Move-out"} inspection
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    {fmt(rec.timestamp)}
+                    {rec.complete ? "" : " · awaiting signatures"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/inspections/${rec.id}`}
+                    className="rounded-full border border-line px-3.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-chip"
+                  >
+                    View full record
+                  </Link>
+                  {rec.complete && (
+                    <a
+                      href={`/api/inspections/${rec.id}/pdf`}
+                      className="rounded-full border border-navy px-3.5 py-1.5 text-xs font-medium text-navy transition-colors hover:bg-navy hover:text-white"
+                    >
+                      Download PDF
+                    </a>
+                  )}
+                </div>
+              </li>
+            ))}
+          </Card>
         </div>
       )}
 

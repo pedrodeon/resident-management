@@ -485,7 +485,13 @@ the tab bar.
    or move-out only**, and always tied to one resident. View past inspections
    read-only (including legacy `periodic` ones). Support a side-by-side compare
    of two inspections (typically move-in vs. move-out) with differences
-   highlighted.
+   highlighted. A **complete** inspection (RA signature + resident signature
+   or move-out waiver) exports as a self-contained PDF liability record —
+   header, all items/notes, embedded photos and signatures, waiver reason —
+   via /api/inspections/[id]/pdf (pdfkit; staff-only, read-only, gate
+   re-checked server-side; filename is room+date, never resident data).
+   Download buttons live on the inspection view and the resident screen's
+   Inspections list.
 
 6. **Check in / out** (the desk) — the semester occupancy flow.
    Search ANY resident building-wide by name or student ID, see status, record

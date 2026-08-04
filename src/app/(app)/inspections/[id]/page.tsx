@@ -124,10 +124,20 @@ export default async function InspectionPage({
     <section>
       <PageHeader back={{ href: `/rooms/${room.id}`, label: `Room ${room.room_number}` }} />
 
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <PageTitle>{TYPE_LABEL[inspection.type]} inspection</PageTitle>
         {signable && !gateSatisfied && (
           <Badge tone="attention">awaiting signatures</Badge>
+        )}
+        {/* The liability record: only a COMPLETE inspection (both halves of
+            the signature gate) exports; the route re-checks the same rule. */}
+        {signable && gateSatisfied && (
+          <a
+            href={`/api/inspections/${inspection.id}/pdf`}
+            className="rounded-full border border-white/30 bg-white/5 px-3.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/15"
+          >
+            Download PDF
+          </a>
         )}
       </div>
 

@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // pdfkit ships .afm font metrics it reads from disk at runtime; bundling
+  // strips them, so it must stay external (the inspection-PDF route).
+  serverExternalPackages: ["pdfkit"],
 };
 
 export default nextConfig;
