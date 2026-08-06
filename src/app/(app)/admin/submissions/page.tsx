@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageTitle, SectionLabel } from "@/components/ui/typography";
+import { staffName } from "@/lib/staff-name";
 
 export const metadata = { title: "Incidents & maintenance — Tudor Hall" };
 
@@ -131,9 +132,9 @@ export default async function SubmissionsPage({
                       </p>
                       <p className="mt-0.5 text-sm text-ink">{r.description}</p>
                       <p className="mt-1 text-xs text-gray-500">
-                        {fmt(r.created_at)} · filed by {r.users?.name ?? "staff"}
-                        {r.status === "done" && r.done
-                          ? ` · closed by ${r.done.name}`
+                        {fmt(r.created_at)} · filed by {staffName(r.users)}
+                        {r.status === "done"
+                          ? ` · closed by ${staffName(r.done)}`
                           : ""}
                       </p>
                     </div>
@@ -169,7 +170,7 @@ export default async function SubmissionsPage({
                     {i.rooms
                       ? ` · ${i.rooms.hallways?.name ?? ""} Room ${i.rooms.room_number}`
                       : ""}{" "}
-                    · filed by {i.users?.name ?? "staff"}
+                    · filed by {staffName(i.users)}
                   </p>
                 </div>
                 <LinkButton

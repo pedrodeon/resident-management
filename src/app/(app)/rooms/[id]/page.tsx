@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/button";
 import { PageTitle, SectionLabel } from "@/components/ui/typography";
 import { PageHeader } from "@/components/ui/page-header";
+import { staffName } from "@/lib/staff-name";
 
 type RoomDetail = {
   id: string;
@@ -82,7 +83,7 @@ export default async function RoomPage({
     id: r.id,
     type: r.type,
     timestamp: r.timestamp,
-    inspector: r.users?.name ?? null,
+    inspector: staffName(r.users),
   }));
 
   return (
@@ -178,7 +179,7 @@ export default async function RoomPage({
                   </span>
                   <span className="text-xs text-gray-500">
                     {new Date(check.timestamp).toLocaleDateString()}
-                    {check.users ? ` · ${check.users.name}` : ""}
+                    {` · ${staffName(check.users)}`}
                   </span>
                 </Link>
               </li>

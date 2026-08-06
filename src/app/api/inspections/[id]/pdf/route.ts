@@ -7,6 +7,7 @@ import {
   sortedItems,
 } from "@/lib/inspection-record";
 import { PHOTO_BUCKET } from "@/lib/photos";
+import { staffName } from "@/lib/staff-name";
 import {
   renderInspectionPdf,
   type InspectionPdfData,
@@ -71,7 +72,7 @@ export async function GET(
       signerName:
         s.role === "resident"
           ? (resident?.full_name ?? "Resident")
-          : (s.captured?.name ?? "RA"),
+          : staffName(s.captured),
       png: await download(s.storage_path),
     })),
   );
@@ -93,7 +94,7 @@ export async function GET(
     hallwayName: inspection.rooms.hallways?.name ?? "—",
     term: inspection.occupancies.term,
     inspectedAt: inspection.timestamp,
-    inspectorName: inspection.users?.name ?? "—",
+    inspectorName: staffName(inspection.users),
     items: items.map((i) => ({
       name: i.inventory_items?.name ?? "Item",
       condition: i.condition,
@@ -106,7 +107,7 @@ export async function GET(
       !roles.has("resident") && waiver
         ? {
             reason: waiver.reason,
-            recordedBy: waiver.users?.name ?? "staff",
+            recordedBy: staffName(waiver.users),
             recordedAt: waiver.created_at,
           }
         : null,

@@ -12,6 +12,7 @@ import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import { PageTitle, SectionLabel } from "@/components/ui/typography";
 import { PageHeader } from "@/components/ui/page-header";
+import { staffName } from "@/lib/staff-name";
 
 // The route id is an OCCUPANCY id — one stay. Read from the occupancies table
 // rather than the current_residents view: a past or archived stay must stay
@@ -375,7 +376,7 @@ export default async function ResidentPage({
           id: e.id,
           label: e.type === "check_in" ? "Checked in" : "Checked out",
           when: fmt(e.timestamp),
-          by: e.users?.name ?? null,
+          by: staffName(e.users),
           note: e.note,
         }))}
       />
@@ -386,7 +387,7 @@ export default async function ResidentPage({
           id: e.id,
           label: e.status === "away" ? "Marked away" : "Marked returned",
           when: fmt(e.timestamp),
-          by: e.users?.name ?? null,
+          by: staffName(e.users),
           note: e.note,
         }))}
       />
@@ -397,7 +398,7 @@ export default async function ResidentPage({
           id: e.id,
           label: `Moved ${e.from_room ? `from ${e.from_room.room_number} ` : ""}to ${e.to_room?.room_number}`,
           when: fmt(e.timestamp),
-          by: e.users?.name ?? null,
+          by: staffName(e.users),
           note: e.reason,
         }))}
       />

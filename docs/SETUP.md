@@ -161,7 +161,7 @@ chars, never hardcoded) and are created as the auth-user + users-row PAIR
 with `must_change_password = TRUE`: on first login the app allows nothing
 but /change-password until they set their own. Safe to re-run — existing
 accounts are never reset or re-flagged; a missing users row is repaired.
-The script prints a per-account summary so you can confirm all 7 RAs.
+The script prints a per-account summary so you can confirm all 6 RAs.
 
 ## RA weekly report (scheduled send — needs deployment)
 

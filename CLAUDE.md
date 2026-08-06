@@ -8,7 +8,7 @@ before making large changes.
 
 A web app to replace paper-based resident management in **Tudor Hall**, a
 university dorm of ~200 residents, managed by one Resident Director (RD) and
-**7 Resident Assistants (RAs)**. This is v1 — keep it small, shippable, and easy
+**6 Resident Assistants (RAs)**. This is v1 — keep it small, shippable, and easy
 to maintain by a solo developer (a senior CS student).
 
 The app does four things:
@@ -45,7 +45,7 @@ Holiday's 2nd and 3rd floors are split into A/B sections:
 **Hallway — not floor — is the organizing unit.** Rooms belong to a hallway; the
 hallway knows its wing and floor.
 
-There are 8 hallways and 7 RAs, so coverage is NOT one-to-one — an RA may cover
+There are 8 hallways and 6 RAs, so coverage is NOT one-to-one — an RA may cover
 two hallways, or the RD may cover one. Coverage is recorded as metadata only
 (see `hallway_assignments`); it does NOT restrict access. All staff can see and
 act on all hallways.
@@ -113,7 +113,7 @@ tables" **off**, automatic RLS **on**.
 
 ## Who logs in
 
-Only **staff** log in: the RD and the 7 RAs. **Residents never log in** — they are
+Only **staff** log in: the RD and the 6 RAs. **Residents never log in** — they are
 records, not user accounts. There is no student-facing login.
 
 ## Data model
