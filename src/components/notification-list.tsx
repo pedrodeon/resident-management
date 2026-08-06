@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { markNotificationsSeen } from "@/app/(app)/notifications/actions";
 import { shiftLabel } from "@/lib/desk-shifts";
+import { staffName } from "@/lib/staff-name";
 import { Card } from "@/components/ui/card";
 import { LocalTime } from "@/components/ui/local-time";
 
@@ -40,8 +41,8 @@ function href(n: NotificationRow): string | null {
 
 /** One sentence per event — the wording lives here, the data is structured. */
 function sentence(n: NotificationRow): string {
-  const actor = n.actor?.name ?? "Someone";
-  const other = n.other?.name ?? "someone";
+  const actor = staffName(n.actor);
+  const other = staffName(n.other);
   // Report events have no shift; only the desk types below use the label.
   if (n.type === "incident_filed") return `${actor} filed an incident report`;
   if (n.type === "maintenance_filed") return `${actor} filed a maintenance request`;

@@ -1,7 +1,7 @@
 # Tudor Hall — resident management
 
 A web app replacing paper-based resident management in Tudor Hall, a ~200-resident
-university dorm run by one Resident Director (RD) and 7 Resident Assistants (RAs).
+university dorm run by one Resident Director (RD) and 6 Resident Assistants (RAs).
 
 Only staff log in. Residents are records, never user accounts.
 

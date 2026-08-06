@@ -19,6 +19,7 @@ import { Card } from "@/components/ui/card";
 import { LocalTime } from "@/components/ui/local-time";
 import { PageTitle } from "@/components/ui/typography";
 import { PageHeader } from "@/components/ui/page-header";
+import { staffName } from "@/lib/staff-name";
 
 const TYPE_LABEL: Record<InspectionType, string> = {
   move_in: "Move-in",
@@ -125,7 +126,7 @@ export default async function InspectionPage({
         </div>
         <div className="flex justify-between gap-4">
           <dt className="text-gray-500">Conducted by</dt>
-          <dd>{inspection.users?.name ?? "—"}</dd>
+          <dd>{staffName(inspection.users)}</dd>
         </div>
       </Card>
 
@@ -203,7 +204,7 @@ export default async function InspectionPage({
                       // The RA label must name who SIGNED (captured_by), not
                       // whoever is viewing the record.
                       signerName:
-                        s.role === "ra" ? s.captured?.name : undefined,
+                        s.role === "ra" ? staffName(s.captured) : undefined,
                     },
                   ]
                 : [];
@@ -213,7 +214,7 @@ export default async function InspectionPage({
             waiverRow
               ? ({
                   reason: waiverRow.reason,
-                  waivedByName: waiverRow.users?.name ?? "staff",
+                  waivedByName: staffName(waiverRow.users),
                   created_at: waiverRow.created_at,
                 } satisfies StoredWaiver)
               : null

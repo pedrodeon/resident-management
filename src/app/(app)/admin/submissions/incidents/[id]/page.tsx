@@ -4,6 +4,7 @@ import { getStaffContext } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageTitle, SectionLabel } from "@/components/ui/typography";
+import { staffName } from "@/lib/staff-name";
 
 export const metadata = { title: "Incident report — Tudor Hall" };
 
@@ -60,7 +61,7 @@ export default async function IncidentPage({
 
       <PageTitle>Incident report</PageTitle>
       <p className="mt-1 text-sm text-white/60">
-        Filed by {incident.users?.name ?? "staff"} · {filedAt}
+        Filed by {staffName(incident.users)} · {filedAt}
       </p>
 
       <Card variant="sheet" className="mt-6">

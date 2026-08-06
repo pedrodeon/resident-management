@@ -5,6 +5,7 @@ import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import { PageTitle, SectionLabel } from "@/components/ui/typography";
 import { PageHeader } from "@/components/ui/page-header";
+import { staffName } from "@/lib/staff-name";
 
 type CheckDetail = {
   id: string;
@@ -60,7 +61,7 @@ export default async function RoomCheckPage({
       </div>
       <p className="mt-1 text-sm text-white/60">
         Room {room.room_number}
-        {check.users ? ` · by ${check.users.name}` : ""}
+        {` · by ${staffName(check.users)}`}
       </p>
 
       <Card variant="sheet" className="mt-6">
