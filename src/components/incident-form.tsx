@@ -19,14 +19,7 @@ function nowDefaults() {
   };
 }
 
-export function IncidentForm({
-  rooms,
-  recipientsHint,
-}: {
-  rooms: RoomOption[];
-  /** e.g. "campus security and Residence Life" — from the page, not the env. */
-  recipientsHint: string;
-}) {
+export function IncidentForm({ rooms }: { rooms: RoomOption[] }) {
   const router = useRouter();
   const [roomId, setRoomId] = useState("");
   const defaults = nowDefaults();
@@ -59,8 +52,8 @@ export function IncidentForm({
     return (
       <div className="flex flex-col gap-4">
         <Alert tone="info" icon>
-          Report sent to {recipientsHint}, with a copy to you. Nothing was
-          stored in the app — the email is the record.
+          Report filed. The Resident Director has been notified in the app and
+          is the only person who can read it.
         </Alert>
         <div>
           <Button variant="subtle" onClick={() => router.push("/")}>
@@ -150,8 +143,8 @@ export function IncidentForm({
       </Card>
 
       <Alert tone="info" icon>
-        Submitting emails this report to {recipientsHint} with a copy to you;
-        replies go to you. Incident reports are not stored in the app.
+        This report is stored in the app and readable only by the Resident
+        Director, who is notified as soon as you submit it.
       </Alert>
 
       <div className="flex gap-2">

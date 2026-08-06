@@ -353,12 +353,29 @@ Any staff files, reads, and closes/reopens; NO delete policy for any role —
 closed requests are history. Filing also emails the RD via Resend (row
 first, then email, so a failed send never loses the request).
 
-**Incident reports are email-only by design** — they concern named students,
-so nothing is stored: the form emails the RD, cc's the filer, and sets
-reply-to to the filer (the from address stays the app's verified sender —
-Resend won't send as an arbitrary user). Email config lives in env vars
-(RESEND_API_KEY, EMAIL_FROM, RD_EMAIL — both report types go to RD_EMAIL);
-sending happens only in server actions via src/lib/email.ts (`server-only`).
+### incident_reports (staff-filed, RD-only — added post-v1)
+- `id` (uuid, pk)
+- `occurred_on` (date), `occurred_at` (time) — when it happened
+- `description` (text, required non-blank), `people_involved`, `actions_taken`
+- `room_id` (uuid, fk → rooms, nullable) — never a resident reference; anyone
+  involved is named in the free text, like the paper form
+- `created_by` (uuid, fk → users) — RLS pins this to the caller
+- `created_at` (timestamptz)
+
+**Incident reports are STORED, not emailed** (this reverses the original
+email-only design: a failed send used to lose the report outright). They carry
+student-conduct narratives, so **SELECT is `is_rd()` only** — an RA can file
+one but cannot read any, through the UI, a direct URL, or the API. Append-only:
+no update/delete policy for any role, service_role included.
+
+**Maintenance requests are RD-only too**: any staff files; only the RD reads
+the queue and closes/reopens. Both are written by definer RPCs
+(`file_incident_report`, `file_maintenance_request`) that insert the row and
+the RD's notification in one transaction, so an alert exists iff the report
+does. The RD reads both at Admin → Incidents & maintenance.
+
+Email is no longer part of either flow; `src/lib/email.ts` and
+RESEND_API_KEY/EMAIL_FROM now serve only the RA weekly report.
 
 ### desk_shifts (front-desk schedule — added post-v1)
 - `id` (uuid, pk)
@@ -388,13 +405,16 @@ slots, and a "Needs coverage" strip with Accept buttons.
 
 ### notifications + notification_seen (in-app schedule feed — part 2)
 - `notifications`: `type` (text check: claimed | released |
-  coverage_requested | coverage_withdrawn | coverage_accepted | assigned),
-  `shift_date`, `slot`, `actor` (fk users), `other_user` (fk users,
-  nullable), `created_at`. One BROADCAST row per event, written inside the
-  shift RPCs (same transaction — a notification exists iff the change
-  happened). Staff read-only; no direct writes for anyone (the private
-  `notify_desk` helper has EXECUTE revoked from authenticated). The UI
-  renders the sentence from the structured fields.
+  coverage_requested | coverage_withdrawn | coverage_accepted | assigned |
+  incident_filed | maintenance_filed), `shift_date`/`slot` (nullable — set
+  for shift events), `target_id` (set for report events, for the deep link),
+  `actor` (fk users), `other_user` (fk users, nullable), `audience`
+  (`all` | `rd`), `created_at`. One row per event, written inside the RPCs
+  (same transaction — a notification exists iff the change happened). Staff
+  read-only, and the SELECT policy filters `audience = 'rd'` to the RD, so
+  incident traffic never reaches an RA's bell or badge. No direct writes for
+  anyone. The UI renders the sentence from the structured fields and links
+  each row to what it is about.
 - `notification_seen`: one watermark row per user (`user_id` pk, `seen_at`).
   The header bell badge counts notifications newer than the caller's
   watermark; visiting `/notifications` upserts it (auto-clear on view).

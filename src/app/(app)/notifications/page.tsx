@@ -15,7 +15,7 @@ export default async function NotificationsPage() {
     supabase
       .from("notifications")
       .select(
-        `id, type, shift_date, slot, created_at,
+        `id, type, shift_date, slot, target_id, created_at,
          actor:actor ( name ),
          other:other_user ( name )`,
       )

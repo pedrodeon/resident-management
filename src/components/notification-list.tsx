@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { markNotificationsSeen } from "@/app/(app)/notifications/actions";
 import { shiftLabel } from "@/lib/desk-shifts";
 import { Card } from "@/components/ui/card";
@@ -14,19 +15,37 @@ export type NotificationRow = {
     | "coverage_requested"
     | "coverage_withdrawn"
     | "coverage_accepted"
-    | "assigned";
-  shift_date: string;
-  slot: number;
+    | "assigned"
+    | "incident_filed"
+    | "maintenance_filed";
+  /** Null on report events — those carry target_id instead. */
+  shift_date: string | null;
+  slot: number | null;
+  target_id: string | null;
   created_at: string;
   actor: { name: string } | null;
   other: { name: string } | null;
 };
 
+/** Where a notification leads, or null when it isn't a link. */
+function href(n: NotificationRow): string | null {
+  if (n.type === "incident_filed") {
+    return n.target_id ? `/admin/submissions/incidents/${n.target_id}` : null;
+  }
+  if (n.type === "maintenance_filed") {
+    return "/admin/submissions?tab=maintenance";
+  }
+  return "/front-desk";
+}
+
 /** One sentence per event — the wording lives here, the data is structured. */
 function sentence(n: NotificationRow): string {
   const actor = n.actor?.name ?? "Someone";
   const other = n.other?.name ?? "someone";
-  const shift = shiftLabel(n.shift_date, n.slot);
+  // Report events have no shift; only the desk types below use the label.
+  if (n.type === "incident_filed") return `${actor} filed an incident report`;
+  if (n.type === "maintenance_filed") return `${actor} filed a maintenance request`;
+  const shift = shiftLabel(n.shift_date ?? "", n.slot ?? 0);
   switch (n.type) {
     case "claimed":
       return `${actor} claimed the ${shift} shift`;
@@ -75,18 +94,28 @@ export function NotificationList({
     <Card as="ul" variant="list">
       {rows.map((n) => {
         const isNew = seenAt === null || n.created_at > seenAt;
-        return (
-          <li
-            key={n.id}
-            className={`flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-2.5 ${
-              isNew ? "bg-chip" : ""
-            }`}
-          >
+        const to = href(n);
+        const body = (
+          <>
             <p className="text-sm text-ink">{sentence(n)}</p>
             <LocalTime
               iso={n.created_at}
               className="text-xs whitespace-nowrap text-gray-500"
             />
+          </>
+        );
+        const rowClass = `flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-2.5 ${
+          isNew ? "bg-chip" : ""
+        }`;
+        return (
+          <li key={n.id}>
+            {to ? (
+              <Link href={to} className={`${rowClass} hover:bg-gray-50`}>
+                {body}
+              </Link>
+            ) : (
+              <div className={rowClass}>{body}</div>
+            )}
           </li>
         );
       })}

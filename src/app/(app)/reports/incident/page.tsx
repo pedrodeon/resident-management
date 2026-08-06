@@ -36,14 +36,11 @@ export default async function IncidentReportPage() {
 
       <PageTitle>Incident report</PageTitle>
       <p className="mt-1 text-sm text-white/60">
-        Sent by email to the incident contacts — it is not stored in the app.
+        Stored in the app and readable only by the Resident Director.
       </p>
 
       <Card variant="sheet" className="mt-6">
-        <IncidentForm
-          rooms={roomOptions}
-          recipientsHint="the Resident Director"
-        />
+        <IncidentForm rooms={roomOptions} />
       </Card>
     </section>
   );

@@ -118,9 +118,9 @@ A fixture project drifts as the suite runs (events are append-only, so they
 accumulate). If the counts stop matching, delete the project and redo this —
 that's cheaper than unpicking it.
 
-## Email (incident reports + maintenance requests)
+## Email (RA weekly report)
 
-Both report forms send through [Resend](https://resend.com) from server
+The RA weekly report sends through [Resend](https://resend.com) from server
 actions — the API key never reaches the browser. Add to `.env.local`:
 
 ```
@@ -129,12 +129,10 @@ EMAIL_FROM="Tudor Hall <reports@...>"   # a sender on your verified domain
 RD_EMAIL=rd@your-university.edu         # both report types go to the RD
 ```
 
-Both forms email the RD; the sender stays the app's verified address (Resend
-requires it), so "who filed this" travels as the reply-to and a "Filed by"
-line in the body — replying reaches the filer directly.
-
-Until these are set, submitting a form shows a clear "email isn't configured"
-error; maintenance requests are still saved to their list either way.
+These serve the **RA weekly report only** (Admin → Reports and the Saturday
+cron). Incident reports and maintenance requests no longer send e-mail at all:
+they are stored in the app and the RD is notified through the in-app bell, so
+they work with no e-mail configuration whatsoever.
 
 ## App icon (home screen)
 

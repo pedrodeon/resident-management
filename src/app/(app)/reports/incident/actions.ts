@@ -1,8 +1,8 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { getStaffContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { recipientsFromEnv, sendEmail } from "@/lib/email";
 
 export type IncidentInput = {
   /** Optional room id; the room the incident happened in, if any. */
@@ -17,13 +17,14 @@ export type IncidentInput = {
 export type IncidentResult = { ok: true } | { ok: false; error: string };
 
 /**
- * File an incident report. EMAIL ONLY, by design: incident narratives can
- * concern named students, so nothing is written to the database — the report
- * goes to the RD (RD_EMAIL), cc the filer, reply-to the filer so a reply
- * reaches whoever filed it. The filer is the logged-in staff member, never a
- * form field.
- * Reports are not tied to a resident record; anyone involved is named in the
- * free-text fields.
+ * File an incident report. STORED, not e-mailed: the report is a row in
+ * incident_reports and the RD is told through the in-app bell. The RPC writes
+ * the report and its notification in one transaction, so an alert exists iff
+ * the report does.
+ *
+ * Reading is RD-only at the database level (incident narratives name
+ * students). Reports are not tied to a resident record; anyone involved is
+ * named in the free-text fields.
  */
 export async function submitIncident(
   input: IncidentInput,
@@ -41,53 +42,18 @@ export async function submitIncident(
     return { ok: false, error: "Describe what happened." };
   }
 
-  // Resolve the optional room server-side under the caller's RLS, so the
-  // email names a real room rather than trusting a client-sent label.
-  let roomLine = "—";
-  if (input.roomId) {
-    const supabase = await createClient();
-    const { data: room } = await supabase
-      .from("rooms")
-      .select(`room_number, hallways ( name )`)
-      .eq("id", input.roomId)
-      .single()
-      .overrideTypes<{
-        room_number: string;
-        hallways: { name: string } | null;
-      }>();
-    if (room) {
-      roomLine = `${room.hallways?.name ?? "?"} · Room ${room.room_number}`;
-    }
-  }
-
-  const filerLine = staff.email
-    ? `${staff.name} (${staff.role.toUpperCase()}, ${staff.email})`
-    : `${staff.name} (${staff.role.toUpperCase()})`;
-
-  const text = [
-    `INCIDENT REPORT — Tudor Hall`,
-    ``,
-    `Filed by:        ${filerLine}`,
-    `Date of incident: ${date} at ${time}`,
-    `Room:            ${roomLine}`,
-    ``,
-    `What happened:`,
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("file_incident_report", {
+    occurred_on: date,
+    occurred_at: time,
     description,
-    ``,
-    `People involved:`,
-    input.peopleInvolved.trim() || "—",
-    ``,
-    `Actions taken:`,
-    input.actionsTaken.trim() || "—",
-    ``,
-    `— Filed through the Tudor Hall app. Reply goes to the filer.`,
-  ].join("\n");
-
-  return sendEmail({
-    to: recipientsFromEnv("RD_EMAIL"),
-    cc: staff.email ? [staff.email] : undefined,
-    replyTo: staff.email ?? undefined,
-    subject: `Incident report — Tudor Hall — ${date}`,
-    text,
+    people_involved: input.peopleInvolved.trim() || null,
+    actions_taken: input.actionsTaken.trim() || null,
+    room_id: input.roomId,
   });
+  if (error) return { ok: false, error: error.message };
+
+  // The RD's bell badge lives in the app shell.
+  revalidatePath("/", "layout");
+  return { ok: true };
 }

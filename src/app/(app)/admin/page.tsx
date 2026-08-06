@@ -8,6 +8,7 @@ const CARDS = [
   { href: "/admin/staff", label: "Staff", desc: "Invite and remove RAs; assign hallway coverage." },
   { href: "/admin/inventory", label: "Inventory template", desc: "Edit the room-inspection checklist." },
   { href: "/admin/reports", label: "Reports", desc: "Weekly RA activity — room checks and front desk shifts." },
+  { href: "/admin/submissions", label: "Incidents & maintenance", desc: "Reports filed by staff. Only you can read incident reports." },
 ];
 
 export default function AdminIndex() {

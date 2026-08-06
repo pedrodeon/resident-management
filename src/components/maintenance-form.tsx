@@ -24,7 +24,7 @@ export function MaintenanceForm() {
   const [description, setDescription] = useState("");
   const [urgency, setUrgency] = useState<Urgency>("normal");
   const [error, setError] = useState<string | null>(null);
-  const [emailWarning, setEmailWarning] = useState<string | null>(null);
+  const [filed, setFiled] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   function submit() {
@@ -40,26 +40,19 @@ export function MaintenanceForm() {
         setError(result.error);
         return;
       }
-      if (result.emailWarning) {
-        // Saved but not emailed — say exactly that, then go to the list where
-        // the request is now visible.
-        setEmailWarning(result.emailWarning);
-      } else {
-        router.push("/maintenance");
-      }
+      setFiled(true);
     });
   }
 
-  if (emailWarning) {
+  if (filed) {
     return (
       <div className="flex flex-col gap-4">
-        <Alert tone="attention">
-          The request was <strong>saved to the maintenance list</strong>, but
-          the email could not be sent: {emailWarning}
+        <Alert tone="info" icon>
+          Request filed. The Resident Director has been notified in the app.
         </Alert>
         <div>
-          <Button variant="subtle" onClick={() => router.push("/maintenance")}>
-            View the list
+          <Button variant="subtle" onClick={() => router.push("/")}>
+            Back to dashboard
           </Button>
         </div>
       </div>
@@ -118,8 +111,8 @@ export function MaintenanceForm() {
       </Card>
 
       <Alert tone="info" icon>
-        Submitting emails the Resident Director with a copy to you, and adds
-        the request to the open list so anyone can mark it done once fixed.
+        The request is stored in the app and the Resident Director is notified
+        right away; they close it once it&rsquo;s fixed.
       </Alert>
 
       <div className="flex gap-2">
@@ -128,12 +121,12 @@ export function MaintenanceForm() {
           onClick={submit}
           disabled={isPending || !location.trim() || !description.trim()}
         >
-          {isPending ? "Sending…" : "Send request"}
+          {isPending ? "Filing…" : "File request"}
         </Button>
         <Button
           variant="subtle"
           size="lg"
-          onClick={() => router.push("/maintenance")}
+          onClick={() => router.push("/")}
           disabled={isPending}
         >
           Cancel

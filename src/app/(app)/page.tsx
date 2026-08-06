@@ -108,7 +108,7 @@ export default async function Dashboard() {
         <ActionTile href="/reports/incident" label="Incident report">
           <AlertTriangleIcon />
         </ActionTile>
-        <ActionTile href="/maintenance" label="Maintenance">
+        <ActionTile href="/maintenance/new" label="Maintenance">
           <WrenchIcon />
         </ActionTile>
       </div>
