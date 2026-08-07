@@ -350,8 +350,7 @@ Recorded from the "Room check" button on room detail.
 - `created_at`, `done_by`, `done_at`
 
 Any staff files, reads, and closes/reopens; NO delete policy for any role —
-closed requests are history. Filing also emails the RD via Resend (row
-first, then email, so a failed send never loses the request).
+closed requests are history. Filing notifies the RD through the in-app bell.
 
 ### incident_reports (staff-filed, RD-only — added post-v1)
 - `id` (uuid, pk)
@@ -374,8 +373,15 @@ the queue and closes/reopens. Both are written by definer RPCs
 the RD's notification in one transaction, so an alert exists iff the report
 does. The RD reads both at Admin → Incidents & maintenance.
 
-Email is no longer part of either flow; `src/lib/email.ts` and
-RESEND_API_KEY/EMAIL_FROM now serve only the RA weekly report.
+### The app sends no email, anywhere
+
+Incidents, maintenance and the RA weekly report were each email-first at some
+point, and each lost work when a send failed or was never configured. All
+three now live in the app: the first two as rows the RD reads at Admin →
+Incidents & maintenance, the third as an on-demand screen. There is no mail
+library, no Resend key, and no scheduled job left in the codebase — **don't
+reintroduce one.** If something needs to reach the RD, write a notification
+row and let the bell carry it.
 
 ### desk_shifts (front-desk schedule — added post-v1)
 - `id` (uuid, pk)
@@ -545,11 +551,11 @@ the tab bar.
    inventory item template, and the **current term**. Also archives/unarchives a
    stay (the only way `is_archived` becomes true through the app). Admin →
    Reports holds the **RA weekly report** (per-RA room-check + desk-shift
-   counts, Sun–Sat weeks in America/Chicago, zeros listed, staff data only):
-   viewable on demand, emailable to RD_EMAIL, and — once deployed — sent
-   automatically every Saturday 9 PM by /api/cron/weekly-report
-   (CRON_SECRET-protected; first automatic send 2026-08-22; one shared
-   builder in src/lib/ra-report.ts serves both triggers).
+   counts, Mon–Sun weeks in America/Chicago, staff data only), built by
+   `src/lib/ra-report.ts`. **On-demand screen only** — the RD opens it and
+   walks back through weeks; nothing is sent or scheduled. Every RA is listed
+   including the ones at zero, tagged `no activity`: the empty row is what
+   the report is FOR, so it must never be filtered out.
 
 9. **New or returning student** (`/admin/residents/new`, RD only) — the one way
    a resident enters the roster, so the duplicate guard and the archive rule

@@ -118,21 +118,12 @@ A fixture project drifts as the suite runs (events are append-only, so they
 accumulate). If the counts stop matching, delete the project and redo this —
 that's cheaper than unpicking it.
 
-## Email (RA weekly report)
+## Email: none
 
-The RA weekly report sends through [Resend](https://resend.com) from server
-actions — the API key never reaches the browser. Add to `.env.local`:
-
-```
-RESEND_API_KEY=...                      # server-only
-EMAIL_FROM="Tudor Hall <reports@...>"   # a sender on your verified domain
-RD_EMAIL=rd@your-university.edu         # both report types go to the RD
-```
-
-These serve the **RA weekly report only** (Admin → Reports and the Saturday
-cron). Incident reports and maintenance requests no longer send e-mail at all:
-they are stored in the app and the RD is notified through the in-app bell, so
-they work with no e-mail configuration whatsoever.
+There is nothing to configure. The app sends no email in any flow and runs no
+scheduled jobs. Incident reports and maintenance requests are stored and the RD
+is notified through the in-app bell; the RA weekly report is a screen the RD
+opens. No Resend account, no API key, no sender domain, no cron secret.
 
 ## App icon (home screen)
 
@@ -163,22 +154,17 @@ but /change-password until they set their own. Safe to re-run — existing
 accounts are never reset or re-flagged; a missing users row is repaired.
 The script prints a per-account summary so you can confirm all 6 RAs.
 
-## RA weekly report (scheduled send — needs deployment)
+## RA weekly report
 
-Admin → Reports shows the per-RA weekly report (room checks + desk shifts)
-on demand and can email it to RD_EMAIL immediately. The **automatic** send —
-every Saturday 9:00 PM America/Chicago, first one 2026-08-22 — only fires on
-an always-on host. To activate it, deploy to Vercel:
+Admin → Reports, RD only. Per-RA room checks and front-desk shifts for one
+week (Monday–Sunday, America/Chicago — the building's clock), defaulting to
+the current week, with ‹ Prev / Next › to walk back through the semester.
+Every RA is listed even at zero, tagged `no activity` — spotting who has
+gone quiet is the whole reason the screen exists.
 
-1. Deploy the repo (`vercel.json` ships the two cron schedules — 02:00 and
-   03:00 UTC Sunday; the endpoint itself picks whichever is 9 PM Chicago, so
-   DST is handled. Hobby plan allows exactly 2 cron jobs — this uses both).
-2. Set the same env vars as `.env.local` in the Vercel project, **plus
-   `CRON_SECRET`** (any long random string, e.g. `openssl rand -hex 32`).
-   Vercel sends it as the Bearer token on cron requests;
-   `/api/cron/weekly-report` rejects everything else with 401.
-3. Nothing else — the endpoint refuses to send before 2026-08-22 even if
-   deployed early.
+Nothing to deploy or schedule: open it when you want it. It reads with the
+service key, so the page re-checks `role === 'rd'` itself rather than
+trusting the admin layout.
 
 ## Notes for later
 

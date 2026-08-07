@@ -4,11 +4,10 @@ import {
   addDays,
   buildRaWeeklyReport,
   currentChicagoWeekStart,
-  FIRST_SCHEDULED_REPORT,
   weekLabel,
   weekStartOf,
 } from "@/lib/ra-report";
-import { EmailReportButton } from "@/components/admin/email-report-button";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -17,9 +16,8 @@ import { PageTitle, SectionLabel } from "@/components/ui/typography";
 export const metadata = { title: "RA reports — Tudor Hall" };
 
 /**
- * RD-only (the admin layout gates the whole area). On-demand view of the
- * same weekly report the Saturday cron emails — one shared builder, so what
- * you see here is exactly what the schedule will send.
+ * RD-only. An on-demand screen and nothing else: open it, pick a week, read
+ * the counts. The app sends no email and runs no schedule.
  */
 export default async function AdminReportsPage({
   searchParams,
@@ -33,12 +31,14 @@ export default async function AdminReportsPage({
   if (!staff || staff.role !== "rd") redirect("/");
 
   const { week } = await searchParams;
+  const thisWeek = currentChicagoWeekStart();
   const weekStart =
-    week && /^\d{4}-\d{2}-\d{2}$/.test(week)
-      ? weekStartOf(week)
-      : currentChicagoWeekStart();
+    week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? weekStartOf(week) : thisWeek;
 
   const report = await buildRaWeeklyReport(weekStart);
+  // Weeks that haven't happened yet can only report zeros, so the walk stops
+  // at the current one.
+  const isCurrentWeek = report.weekStart >= thisWeek;
 
   return (
     <section>
@@ -46,14 +46,17 @@ export default async function AdminReportsPage({
 
       <PageTitle>RA weekly report</PageTitle>
       <p className="mt-1 text-sm text-white/60">
-        Room checks and front-desk shifts per RA, Sunday–Saturday. Staff
-        counts only — no resident data.
+        Room checks and front-desk shifts per RA, Monday–Sunday. Staff counts
+        only — no resident data.
       </p>
 
       <Card variant="sheet" className="mt-6">
         <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-          <SectionLabel>Week of {weekLabel(report)}</SectionLabel>
-          <div className="flex gap-2">
+          <SectionLabel>
+            Week of {weekLabel(report)}
+            {isCurrentWeek ? " (this week)" : ""}
+          </SectionLabel>
+          <div className="flex flex-wrap gap-2">
             <LinkButton
               variant="subtle"
               size="sm"
@@ -61,22 +64,38 @@ export default async function AdminReportsPage({
             >
               ‹ Prev
             </LinkButton>
-            <LinkButton
-              variant="subtle"
-              size="sm"
-              href={`/admin/reports?week=${addDays(report.weekStart, 7)}`}
-            >
-              Next ›
-            </LinkButton>
+            {isCurrentWeek ? (
+              <span
+                className="rounded-full border border-line px-3.5 py-1.5 text-xs font-medium text-faint"
+                aria-disabled="true"
+              >
+                Next ›
+              </span>
+            ) : (
+              <LinkButton
+                variant="subtle"
+                size="sm"
+                href={`/admin/reports?week=${addDays(report.weekStart, 7)}`}
+              >
+                Next ›
+              </LinkButton>
+            )}
+            {!isCurrentWeek && (
+              <LinkButton variant="outline" size="sm" href="/admin/reports">
+                This week
+              </LinkButton>
+            )}
           </div>
         </div>
 
         <Card as="div" variant="list" className="mt-4">
           <div className="flex items-center justify-between gap-3 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted">
             <span>RA</span>
-            <span className="flex gap-6">
-              <span className="w-24 text-right">Room checks</span>
-              <span className="w-24 text-right">Desk shifts</span>
+            {/* Narrow columns on phones: at 320 the wide pair pushed the
+                labels out past the card's own edge. */}
+            <span className="flex gap-3 sm:gap-6">
+              <span className="w-14 text-right sm:w-24">Room checks</span>
+              <span className="w-14 text-right sm:w-24">Desk shifts</span>
             </span>
           </div>
           {report.rows.length === 0 ? (
@@ -87,33 +106,43 @@ export default async function AdminReportsPage({
             report.rows.map((row) => (
               <div
                 key={row.name}
-                className="flex items-center justify-between gap-3 px-4 py-2.5"
+                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2.5"
               >
-                <span className="text-sm font-medium text-ink">{row.name}</span>
-                <span className="flex gap-6 text-sm text-ink">
-                  <span className="w-24 text-right">{row.roomChecks}</span>
-                  <span className="w-24 text-right">{row.deskShifts}</span>
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium text-ink">
+                    {row.name}
+                  </span>
+                  {/* The empty row is the point of the report — mark it so a
+                      week of nothing reads at a glance. */}
+                  {row.roomChecks === 0 && row.deskShifts === 0 && (
+                    <Badge tone="attention">no activity</Badge>
+                  )}
+                </span>
+                {/* ml-auto keeps the counts under their headings when a long
+                    name + chip wraps them onto their own line. */}
+                <span className="ml-auto flex gap-3 text-sm text-ink sm:gap-6">
+                  <span className="w-14 text-right sm:w-24">
+                    {row.roomChecks}
+                  </span>
+                  <span className="w-14 text-right sm:w-24">
+                    {row.deskShifts}
+                  </span>
                 </span>
               </div>
             ))
           )}
           <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-2.5">
             <span className="text-sm font-bold text-navy">Total</span>
-            <span className="flex gap-6 text-sm font-bold text-navy">
-              <span className="w-24 text-right">{report.totals.roomChecks}</span>
-              <span className="w-24 text-right">{report.totals.deskShifts}</span>
+            <span className="flex gap-3 text-sm font-bold text-navy sm:gap-6">
+              <span className="w-14 text-right sm:w-24">
+                {report.totals.roomChecks}
+              </span>
+              <span className="w-14 text-right sm:w-24">
+                {report.totals.deskShifts}
+              </span>
             </span>
           </div>
         </Card>
-
-        <div className="mt-4 px-1">
-          <EmailReportButton weekStart={report.weekStart} />
-          <p className="mt-3 text-xs text-muted">
-            Once deployed, this report also sends itself every Saturday at
-            9:00 PM (America/Chicago), starting {FIRST_SCHEDULED_REPORT} — no
-            automatic sends before then.
-          </p>
-        </div>
       </Card>
     </section>
   );
