@@ -4,17 +4,16 @@ import { createClient } from "@supabase/supabase-js";
 
 /*
  * The RA weekly report: per-RA counts of room checks and front-desk shifts
- * for one calendar week (Sunday–Saturday, America/Chicago — the building's
+ * for one calendar week (Monday–Sunday, America/Chicago — the building's
  * clock, same as desk_shift_start()). Staff names and counts ONLY; no
  * resident data ever enters this report.
  *
- * ONE build function, two triggers: the RD's on-demand Admin screen and the
- * scheduled cron route both call buildRaWeeklyReport + reportEmailText, so
- * the two can never drift apart.
+ * On-demand only. The RD opens Admin → Reports and picks a week; nothing is
+ * sent, scheduled, or emailed anywhere.
  *
- * Reads use the service-role key: the cron has no user session, and the
- * on-demand server action verifies role === 'rd' before calling. This module
- * is `server-only`, so the key cannot leak into client bundles.
+ * Reads use the service-role key, so the ONE caller — the reports page —
+ * verifies role === 'rd' before rendering. This module is `server-only`, so
+ * the key cannot leak into client bundles.
  */
 
 export type RaReportRow = {
@@ -24,16 +23,13 @@ export type RaReportRow = {
 };
 
 export type RaReport = {
-  /** Sunday, YYYY-MM-DD (Chicago calendar). */
+  /** Monday, YYYY-MM-DD (Chicago calendar). */
   weekStart: string;
-  /** Saturday, YYYY-MM-DD. */
+  /** Sunday, YYYY-MM-DD. */
   weekEnd: string;
   rows: RaReportRow[];
   totals: { roomChecks: number; deskShifts: number };
 };
-
-/** No automatic report before this Saturday — move-in week data is noise. */
-export const FIRST_SCHEDULED_REPORT = "2026-08-22";
 
 const TZ = "America/Chicago";
 
@@ -64,13 +60,16 @@ export function addDays(date: string, days: number): string {
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 }
 
-/** Normalize any date to its week's Sunday (weekday of a date is TZ-free). */
+/** Normalize any date to its week's Monday (weekday of a date is TZ-free). */
 export function weekStartOf(date: string): string {
   const [y, m, d] = date.split("-").map(Number);
-  return addDays(date, -new Date(Date.UTC(y, m - 1, d)).getUTCDay());
+  // getUTCDay(): 0 = Sunday … 6 = Saturday. Shift so Monday is 0 and Sunday
+  // is 6, which puts Sunday at the END of its week rather than the start.
+  const dayFromMonday = (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7;
+  return addDays(date, -dayFromMonday);
 }
 
-/** The current Chicago week's Sunday — the default report week. */
+/** The current Chicago week's Monday — the default report week. */
 export function currentChicagoWeekStart(): string {
   return weekStartOf(chicagoNow().date);
 }
@@ -171,25 +170,4 @@ export function weekLabel(report: Pick<RaReport, "weekStart" | "weekEnd">): stri
     });
   };
   return `${fmt(report.weekStart)} – ${fmt(report.weekEnd)}, ${report.weekEnd.slice(0, 4)}`;
-}
-
-/** Plain text on purpose — reads identically in every mail client. */
-export function reportEmailText(report: RaReport): string {
-  const nameWidth = Math.max(...report.rows.map((r) => r.name.length), 5);
-  const line = (name: string, checks: string | number, shifts: string | number) =>
-    `${name.padEnd(nameWidth)}  ${String(checks).padStart(11)}  ${String(shifts).padStart(11)}`;
-
-  return [
-    `RA WEEKLY REPORT — Tudor Hall`,
-    `Week of ${weekLabel(report)} (Sun–Sat)`,
-    ``,
-    line("RA", "Room checks", "Desk shifts"),
-    line("-".repeat(nameWidth), "-".repeat(11), "-".repeat(11)),
-    ...report.rows.map((r) => line(r.name, r.roomChecks, r.deskShifts)),
-    line("-".repeat(nameWidth), "-".repeat(11), "-".repeat(11)),
-    line("Total", report.totals.roomChecks, report.totals.deskShifts),
-    ``,
-    `Staff activity counts only — no resident data.`,
-    `— Sent by the Tudor Hall app.`,
-  ].join("\n");
 }
