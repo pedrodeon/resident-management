@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env.local --test --test-concurrency=1 \"tests/**/*.test.mjs\"",
+    "test": "node --conditions=react-server --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env.local --test --test-concurrency=1 \"tests/**/*.test.mjs\"",
     "seed:staff": "node --env-file=.env.local scripts/seed-staff.mjs",
     "seed:ras": "node --env-file=.env.local scripts/seed-ra-accounts.mjs"
   },

@@ -56,22 +56,34 @@ function stamp(iso: string): string {
   })} (Central Time)`;
 }
 
-export async function renderInspectionPdf(data: InspectionPdfData): Promise<Buffer> {
+type Doc = InstanceType<typeof PDFDocument>;
+
+/** Open an A4 document with the record's page geometry and collect its bytes. */
+function openDocument(title: string): { doc: Doc; done: Promise<Buffer> } {
   const doc = new PDFDocument({
     size: "A4",
     margins: { top: MARGIN, bottom: MARGIN + 18, left: MARGIN, right: MARGIN },
     bufferPages: true,
-    info: {
-      Title: `Tudor Hall ${data.type === "move_in" ? "move-in" : "move-out"} inspection — Room ${data.roomNumber}`,
-      Author: "Tudor Hall",
-    },
+    info: { Title: title, Author: "Tudor Hall" },
   });
   const chunks: Buffer[] = [];
   doc.on("data", (c: Buffer) => chunks.push(c));
   const done = new Promise<Buffer>((resolve) =>
     doc.on("end", () => resolve(Buffer.concat(chunks))),
   );
+  return { doc, done };
+}
 
+/** What a page's footer says about the record it belongs to. */
+type PageOwner = Pick<InspectionPdfData, "hallwayName" | "roomNumber" | "type">;
+
+/**
+ * Every page of one record, from the title block to the signature boxes —
+ * everything except opening the document and stamping footers. The single
+ * export and the hallway packet both draw through THIS, so there is one
+ * template and one layout; the packet only decides where records start.
+ */
+function drawRecord(doc: Doc, data: InspectionPdfData): void {
   const ensureRoom = (needed: number) => {
     if (doc.y + needed > doc.page.height - doc.page.margins.bottom) doc.addPage();
   };
@@ -236,8 +248,14 @@ export async function renderInspectionPdf(data: InspectionPdfData): Promise<Buff
   if (ra) drawSignatureBox(MARGIN + boxW + 16, ra);
   doc.y = boxTop + boxH + 10;
   doc.x = MARGIN;
+}
 
-  // ---- Footer on every page ------------------------------------------------
+/**
+ * Footers, after all drawing is done — page numbers can't be known before
+ * then. `owners[i]` names the record page i belongs to, which is what lets a
+ * packet keep each page labelled with its own room instead of the packet's.
+ */
+function stampFooters(doc: Doc, owners: PageOwner[]): void {
   const generated = new Date().toISOString();
   const range = doc.bufferedPageRange();
   for (let i = range.start; i < range.start + range.count; i++) {
@@ -246,9 +264,10 @@ export async function renderInspectionPdf(data: InspectionPdfData): Promise<Buff
     // break — zero it out while stamping the footer.
     doc.page.margins.bottom = 0;
     const y = doc.page.height - MARGIN;
+    const owner = owners[i] ?? owners[owners.length - 1];
     doc.font("Helvetica").fontSize(7.5).fillColor(MUTED);
     doc.text(
-      `${data.hallwayName} · Room ${data.roomNumber} · ${data.type === "move_in" ? "Move-in" : "Move-out"} inspection — generated ${stamp(generated)} from the Tudor Hall app`,
+      `${owner.hallwayName} · Room ${owner.roomNumber} · ${owner.type === "move_in" ? "Move-in" : "Move-out"} inspection — generated ${stamp(generated)} from the Tudor Hall app`,
       MARGIN,
       y,
       { width: CONTENT_W - 60, lineBreak: false },
@@ -259,7 +278,61 @@ export async function renderInspectionPdf(data: InspectionPdfData): Promise<Buff
       lineBreak: false,
     });
   }
+}
 
+/** One resident's record — the per-resident export, unchanged. */
+export async function renderInspectionPdf(data: InspectionPdfData): Promise<Buffer> {
+  const { doc, done } = openDocument(
+    `Tudor Hall ${data.type === "move_in" ? "move-in" : "move-out"} inspection — Room ${data.roomNumber}`,
+  );
+  drawRecord(doc, data);
+  stampFooters(doc, pageOwners(doc, [data], [0]));
+  doc.end();
+  return done;
+}
+
+/** Map every page drawn so far to the record it came from. */
+function pageOwners(
+  doc: Doc,
+  records: InspectionPdfData[],
+  firstPageOf: number[],
+): PageOwner[] {
+  const total = doc.bufferedPageRange().count;
+  const owners: PageOwner[] = [];
+  for (let page = 0; page < total; page++) {
+    let index = 0;
+    while (index + 1 < firstPageOf.length && firstPageOf[index + 1] <= page) {
+      index += 1;
+    }
+    owners.push(records[index]);
+  }
+  return owners;
+}
+
+/**
+ * A whole hallway's records in one document, each starting on a fresh page.
+ * No second template: this loops over the same drawRecord the single export
+ * uses, so a packet's pages are the per-resident pages, concatenated.
+ */
+export async function renderInspectionPacket(
+  records: InspectionPdfData[],
+  title: string,
+): Promise<Buffer> {
+  if (records.length === 0) {
+    throw new Error("renderInspectionPacket called with no records");
+  }
+  const { doc, done } = openDocument(title);
+
+  const firstPageOf: number[] = [];
+  records.forEach((record, i) => {
+    // Record 1 opens the document's first page; every later one starts on a
+    // new page of its own.
+    if (i > 0) doc.addPage();
+    firstPageOf.push(doc.bufferedPageRange().count - 1);
+    drawRecord(doc, record);
+  });
+
+  stampFooters(doc, pageOwners(doc, records, firstPageOf));
   doc.end();
   return done;
 }

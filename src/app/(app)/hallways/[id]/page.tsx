@@ -7,6 +7,7 @@ import { Avatar, SquareBadge, StatusDot } from "@/components/ui/badge";
 import { PageTitle, SectionLabel } from "@/components/ui/typography";
 import type { Hallway, OccupancyStatus } from "@/lib/types";
 import { PageHeader } from "@/components/ui/page-header";
+import { HallwayCheckinsButton } from "@/components/hallway-checkins-button";
 
 type RosterResident = {
   id: string;
@@ -77,7 +78,10 @@ export default async function HallwayPage({
       <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
         Floor {hallway.floor} · {hallway.wing} wing
       </p>
-      <PageTitle className="mt-1">{hallway.name}</PageTitle>
+      <div className="mt-1 flex flex-wrap items-start justify-between gap-3">
+        <PageTitle>{hallway.name}</PageTitle>
+        <HallwayCheckinsButton hallwayId={hallway.id} />
+      </div>
       {coveredBy.length > 0 && (
         <div className="mt-2 flex items-center gap-2">
           <Avatar name={coveredBy[0]} tone="glass" size="sm" />
