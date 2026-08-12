@@ -13,7 +13,9 @@ import type { OccupancyStatus } from "@/lib/types";
 import { Alert } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { SearchInput } from "@/components/ui/search-input";
 import { SectionLabel } from "@/components/ui/typography";
+import { matchesResident } from "@/lib/resident-search";
 
 export type RoomChoice = { id: string; label: string };
 
@@ -51,6 +53,7 @@ export function ResidentsManager({
   currentTerm: string;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [filter, setFilter] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -68,15 +71,41 @@ export function ResidentsManager({
     });
   }
 
+  // The same matcher the search overlay uses — a name partial or a student-ID
+  // prefix — applied to the rows already on the page, so filtering here costs
+  // no round trip. Unlike the overlay this deliberately searches PAST and
+  // archived stays too: this screen is the one place they are visible, and
+  // hiding them from its own filter would make them unfindable.
+  const filtered =
+    filter.trim() === ""
+      ? stays
+      : stays.filter((s) => matchesResident(s, filter));
+
   // Current term first, then past terms — the everyday roster is what the RD
   // is usually here for.
-  const current = stays.filter((s) => s.term === currentTerm && !s.is_archived);
-  const other = stays.filter((s) => s.term !== currentTerm || s.is_archived);
+  const current = filtered.filter(
+    (s) => s.term === currentTerm && !s.is_archived,
+  );
+  const other = filtered.filter(
+    (s) => s.term !== currentTerm || s.is_archived,
+  );
 
   return (
     <div className="flex flex-col gap-8">
       {error && <Alert tone="error">{error}</Alert>}
       {notice && <Alert tone="info">{notice}</Alert>}
+
+      <SearchInput
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        placeholder="Filter by name or student ID"
+        aria-label="Filter residents by name or student ID"
+      />
+      {filter.trim() !== "" && filtered.length === 0 && (
+        <p className="-mt-4 px-1 text-sm text-gray-500">
+          No stays match &ldquo;{filter.trim()}&rdquo;.
+        </p>
+      )}
 
       <TermControl
         currentTerm={currentTerm}

@@ -5,6 +5,7 @@ import { Card, CardLink } from "@/components/ui/card";
 import { SquareBadge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageTitle } from "@/components/ui/typography";
+import { ResidentSearch } from "@/components/resident-search";
 import type { Hallway } from "@/lib/types";
 
 export const metadata = { title: "Roster — Tudor Hall" };
@@ -55,7 +56,10 @@ export default async function RosterPage() {
     <section>
       <PageHeader />
 
-      <PageTitle>Roster</PageTitle>
+      <div className="flex items-center justify-between gap-3">
+        <PageTitle>Roster</PageTitle>
+        <ResidentSearch />
+      </div>
       <p className="mt-1 text-sm text-white/60">
         Pick a hallway to see its residents and presence toggles.
       </p>
