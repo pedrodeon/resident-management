@@ -7,6 +7,7 @@ import { CardTitle } from "@/components/ui/typography";
 import { HighlightMark, SquareBadge } from "@/components/ui/badge";
 import type { Hallway } from "@/lib/types";
 import { PageHeader } from "@/components/ui/page-header";
+import { ResidentSearch } from "@/components/resident-search";
 
 // Nested shape returned by the dashboard query below.
 type HallwayWithCounts = Hallway & {
@@ -160,7 +161,10 @@ function Greeting({
   return (
     <section>
       <PageHeader />
-      <p className="text-sm text-white/70">{lead}</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-white/70">{lead}</p>
+        <ResidentSearch />
+      </div>
       <div className="mt-4 flex flex-col gap-5">{children}</div>
     </section>
   );
