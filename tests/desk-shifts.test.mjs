@@ -179,3 +179,53 @@ describe("no direct writes", () => {
     assert.ok(error, "a direct insert bypassed the RPCs");
   });
 });
+
+describe("shifts outlive the schedule they were claimed under", () => {
+  // DESK_SCHEDULE (src/lib/desk-shifts.ts) says which nights can be newly
+  // claimed. It must never decide what the calendar SHOWS: a shift claimed
+  // back when Wednesday was staffed is still a record of who worked it, and
+  // whoever holds it still has to be able to get out of it.
+  //
+  // Note the schedule is enforced in the server actions, not in these RPCs —
+  // so this test can create the historical row the way one really was.
+  test("a shift on an unstaffed night still comes back in the month query", async () => {
+    // The Wednesday of the far week — no longer claimable through the app.
+    const [y, m, d] = farDate.split("-").map(Number);
+    const cursor = new Date(y, m - 1, d);
+    cursor.setDate(cursor.getDate() + ((3 - cursor.getDay() + 7) % 7));
+    const wednesday = [
+      cursor.getFullYear(),
+      String(cursor.getMonth() + 1).padStart(2, "0"),
+      String(cursor.getDate()).padStart(2, "0"),
+    ].join("-");
+
+    const { error } = await rd.rpc("set_desk_shift", {
+      target_date: wednesday,
+      target_slot: 1,
+      target_user: raId,
+    });
+    assert.equal(error, null, error?.message);
+
+    // Exactly the query /front-desk runs for a month: a date range, no filter
+    // on slot or weekday.
+    const first = `${wednesday.slice(0, 7)}-01`;
+    const last = `${wednesday.slice(0, 7)}-31`;
+    const { data } = await rd
+      .from("desk_shifts")
+      .select("shift_date, slot, claimed_by")
+      .gte("shift_date", first)
+      .lte("shift_date", last);
+
+    const row = (data ?? []).find(
+      (r) => r.shift_date === wednesday && r.slot === 1,
+    );
+    assert.ok(row, "the historical Wednesday shift vanished from the calendar");
+    assert.equal(row.claimed_by, raId);
+
+    await rd.rpc("set_desk_shift", {
+      target_date: wednesday,
+      target_slot: 1,
+      target_user: null,
+    });
+  });
+});

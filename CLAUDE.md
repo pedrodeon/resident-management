@@ -409,6 +409,22 @@ first served — racing accepts serialize on the row lock and the loser gets
 as initials avatars (accent ring = needs cover), open ones as tappable
 slots, and a "Needs coverage" strip with Accept buttons.
 
+**Which nights the desk is staffed** is the one desk rule that is NOT in the
+database — deliberately. It lives in `DESK_SCHEDULE` in
+`src/lib/desk-shifts.ts` (Mon/Thu/Fri both slots, Tue late only, Wed/Sat/Sun
+none), read by both the calendar and the server actions so the schedule is
+edited in exactly one place. The trade was made knowingly: putting it in SQL
+too would mean maintaining the same rule twice, and the residual gap — a
+staff member calling `claim_desk_shift` directly, skipping the app — costs
+at worst a shift on a night nobody works, visible to the RD on the calendar.
+The 24-hour lock stays in the database, where a bypass would actually matter.
+
+The schedule governs what can be **newly claimed or assigned**, never what
+displays. A shift already held on a night since dropped still renders, and
+stays releasable, coverable and clearable — so `claimShift` and `assignShift`
+(with a user) check it, while release, coverage, accept and clear do not. A
+dropped night must not erase who worked it, or strand whoever holds it.
+
 ### notifications + notification_seen (in-app schedule feed — part 2)
 - `notifications`: `type` (text check: claimed | released |
   coverage_requested | coverage_withdrawn | coverage_accepted | assigned |
