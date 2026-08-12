@@ -4,21 +4,16 @@ import { getStaffContext } from "@/lib/auth";
 import {
   loadInspectionRecord,
   recordComplete,
-  sortedItems,
+  type InspectionRecord,
 } from "@/lib/inspection-record";
-import { PHOTO_BUCKET } from "@/lib/photos";
-import { staffName } from "@/lib/staff-name";
-import {
-  renderInspectionPdf,
-  type InspectionPdfData,
-  type PdfPhoto,
-  type PdfSignature,
-} from "@/lib/inspection-pdf";
+import { toPdfData } from "@/lib/inspection-packet";
+import { renderInspectionPdf } from "@/lib/inspection-pdf";
 
 /**
  * The inspection record as a PDF — the damage-liability document. Loads
  * through the same `loadInspectionRecord` as the on-screen record view, so
- * the two can never disagree.
+ * the two can never disagree, and maps to the renderer through the same
+ * `toPdfData` the hallway packet uses.
  *
  * Read-only by construction: every read (rows AND storage blobs) goes
  * through the caller's RLS-scoped client, and only completed records —
@@ -54,65 +49,13 @@ export async function GET(
     );
   }
 
-  // Blobs come through the caller's storage client — same policies as the app.
-  const download = async (path: string): Promise<Buffer | null> => {
-    const { data } = await supabase.storage.from(PHOTO_BUCKET).download(path);
-    return data ? Buffer.from(await data.arrayBuffer()) : null;
-  };
-
-  const resident = inspection.occupancies.people;
-  const items = sortedItems(inspection);
-  const roles = new Set(inspection.inspection_signatures.map((s) => s.role));
-  const waiver = inspection.inspection_signature_waivers;
-
-  const signatures: PdfSignature[] = await Promise.all(
-    inspection.inspection_signatures.map(async (s) => ({
-      role: s.role,
-      signedAt: s.signed_at,
-      signerName:
-        s.role === "resident"
-          ? (resident?.full_name ?? "Resident")
-          : staffName(s.captured),
-      png: await download(s.storage_path),
-    })),
+  const data = await toPdfData(
+    supabase,
+    inspection as InspectionRecord & {
+      rooms: NonNullable<InspectionRecord["rooms"]>;
+      occupancies: NonNullable<InspectionRecord["occupancies"]>;
+    },
   );
-
-  const photos: PdfPhoto[] = await Promise.all(
-    items.flatMap((item) =>
-      item.inspection_photos.map(async (p) => ({
-        itemName: item.inventory_items?.name ?? "Item",
-        jpeg: await download(p.storage_path),
-      })),
-    ),
-  );
-
-  const data: InspectionPdfData = {
-    type: inspection.type,
-    residentName: resident?.full_name ?? "—",
-    studentId: resident?.student_id ?? "—",
-    roomNumber: inspection.rooms.room_number,
-    hallwayName: inspection.rooms.hallways?.name ?? "—",
-    term: inspection.occupancies.term,
-    inspectedAt: inspection.timestamp,
-    inspectorName: staffName(inspection.users),
-    items: items.map((i) => ({
-      name: i.inventory_items?.name ?? "Item",
-      condition: i.condition,
-      note: i.note,
-    })),
-    inspectionNote: inspection.notes,
-    photos,
-    signatures,
-    waiver:
-      !roles.has("resident") && waiver
-        ? {
-            reason: waiver.reason,
-            recordedBy: staffName(waiver.users),
-            recordedAt: waiver.created_at,
-          }
-        : null,
-  };
-
   const pdf = await renderInspectionPdf(data);
 
   // Room + date only in the filename — never resident data.
