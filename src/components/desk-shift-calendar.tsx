@@ -13,6 +13,7 @@ import {
   dateKey,
   SHIFT_SLOTS,
   shiftLabel,
+  slotsOn,
   type ShiftSlot,
 } from "@/lib/desk-shifts";
 import { Alert } from "@/components/ui/alert";
@@ -327,20 +328,35 @@ export function DeskShiftCalendar({
           if (day === null) return <span key={`blank-${i}`} />;
           const date = dateKey(year, month, day);
           const isToday = isThisMonth && day === today.getDate();
+          const scheduled = slotsOn(date);
+          const offNight = scheduled.length === 0;
+          // The schedule decides what can be claimed; a shift someone already
+          // holds renders regardless, so dropping a night never hides who
+          // worked it. Off-schedule slots therefore only ever appear taken.
+          const visibleSlots = SHIFT_SLOTS.filter(
+            ({ slot }) =>
+              scheduled.includes(slot) || slotState(date, slot).owner !== null,
+          );
           return (
             <div
               key={date}
-              className="flex min-h-[72px] flex-col gap-1 rounded-lg border border-line p-1"
+              className={`flex min-h-[72px] flex-col gap-1 rounded-lg border p-1 ${
+                offNight ? "border-line/50 bg-chip/40" : "border-line"
+              }`}
             >
               {/* The date, visible but quiet — the shifts are the content. */}
               <p
                 className={`text-right text-[10px] leading-none ${
-                  isToday ? "font-bold text-navy" : "text-faint"
+                  isToday
+                    ? "font-bold text-navy"
+                    : offNight
+                      ? "text-faint/50"
+                      : "text-faint"
                 }`}
               >
                 {day}
               </p>
-              {SHIFT_SLOTS.map(({ slot, label, short, startHour }) => {
+              {visibleSlots.map(({ slot, label, short, startHour }) => {
                 const { owner, cover } = slotState(date, slot);
                 const start = new Date(year, month - 1, day, startHour).getTime();
                 const locked = start - nowMs < LOCK_MS;
@@ -401,11 +417,13 @@ export function DeskShiftCalendar({
 
       <p className="mt-3 px-1 text-xs text-muted">
         Tap an open slot to claim it
-        {isRd ? "; as RD, tap any slot to assign or clear it" : ""}. Tap your
-        own circle for actions. Shifts lock 24 hours before start — inside the
-        window, requesting coverage is the only way out, and you stay on the
-        shift until someone accepts. Orange means a shift needs cover: tap it
-        (or Accept above) to take it.
+        {isRd ? "; as RD, tap any slot to assign or clear it" : ""}. Greyed
+        days aren&rsquo;t staffed, so they have no slots to claim — a shift
+        already held on one still shows, and can still be released or covered.
+        Tap your own circle for actions. Shifts lock 24 hours before start —
+        inside the window, requesting coverage is the only way out, and you
+        stay on the shift until someone accepts. Orange means a shift needs
+        cover: tap it (or Accept above) to take it.
       </p>
     </div>
   );

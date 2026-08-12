@@ -5,7 +5,7 @@ import {
   addMonths,
   monthParam,
   parseMonthParam,
-  SHIFT_SLOTS,
+  scheduleSummary,
 } from "@/lib/desk-shifts";
 import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/button";
@@ -68,8 +68,8 @@ export default async function FrontDeskPage({
 
       <PageTitle>Front Desk</PageTitle>
       <p className="mt-1 text-sm text-white/60">
-        Two shifts a night — {SHIFT_SLOTS[0].label} and {SHIFT_SLOTS[1].label}.
-        Tap an open slot to claim it; shifts lock 24 hours before they start.
+        {scheduleSummary()}. Tap an open slot to claim it; shifts lock 24 hours
+        before they start.
       </p>
 
       <Card variant="sheet" className="mt-6">
