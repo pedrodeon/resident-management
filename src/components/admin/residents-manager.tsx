@@ -27,6 +27,13 @@ export type AdminOccupancy = ResidentInput & {
   occupancy_status: OccupancyStatus;
   is_archived: boolean;
   room_label: string;
+  /**
+   * Inspections attached to this stay. They do not cascade on delete — a
+   * signed inspection outlives the roster row on purpose — so any number
+   * above zero means the database will refuse to delete this stay, and the
+   * screen says so instead of letting the click fail.
+   */
+  inspection_count: number;
 };
 
 const EMPTY: ResidentInput = {
@@ -288,6 +295,20 @@ function StayList({
                       </span>
                     )}
                   </p>
+                  {stay.inspection_count > 0 && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      This stay has {stay.inspection_count} inspection{" "}
+                      {stay.inspection_count === 1 ? "record" : "records"}.
+                      Archive it instead, or delete the inspection first (RD
+                      only).{" "}
+                      <Link
+                        href={`/residents/${stay.id}#inspections`}
+                        className="font-medium text-navy underline"
+                      >
+                        View inspections
+                      </Link>
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="subtle" size="sm" onClick={() => onEdit(stay.id)}>
@@ -304,7 +325,9 @@ function StayList({
                     </Button>
                   ) : (
                     <Button
-                      variant="subtle"
+                      // With Delete unavailable, Archive is the action to
+                      // take, so it stops looking like the quiet one.
+                      variant={stay.inspection_count > 0 ? "primary" : "subtle"}
                       size="sm"
                       onClick={() => onArchive(stay)}
                       disabled={isPending}
@@ -312,22 +335,35 @@ function StayList({
                       Archive
                     </Button>
                   )}
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => {
-                      if (
-                        confirm(
-                          `Delete ${stay.full_name}'s ${stay.term} stay and its events? Archiving keeps the history instead.`,
-                        )
-                      ) {
-                        onDelete(stay);
-                      }
-                    }}
-                    disabled={isPending}
-                  >
-                    Delete
-                  </Button>
+                  {stay.inspection_count > 0 ? (
+                    // Not hidden — a disabled button with a reason teaches the
+                    // rule; a missing one just looks broken.
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      disabled
+                      title="This stay has inspection records"
+                    >
+                      Delete
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => {
+                        if (
+                          confirm(
+                            `Delete ${stay.full_name}'s ${stay.term} stay and its events? Archiving keeps the history instead.`,
+                          )
+                        ) {
+                          onDelete(stay);
+                        }
+                      }}
+                      disabled={isPending}
+                    >
+                      Delete
+                    </Button>
+                  )}
                 </div>
               </li>
             ),

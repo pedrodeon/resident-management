@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { humanDbError } from "@/lib/db-errors";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -89,7 +90,9 @@ export async function openStay(input: OpenStayInput): Promise<OpenStayResult> {
       .select("id, full_name")
       .eq("id", input.person.person_id)
       .single();
-    if (error) return { ok: false, error: `That person no longer exists: ${error.message}` };
+    if (error) {
+      return { ok: false, error: "That person is no longer on record — refresh the list." };
+    }
     personId = person.id;
     personName = person.full_name;
 
@@ -98,7 +101,9 @@ export async function openStay(input: OpenStayInput): Promise<OpenStayResult> {
       .from("people")
       .update({ phone, emergency_contact })
       .eq("id", personId);
-    if (updateError) return { ok: false, error: updateError.message };
+    if (updateError) {
+      return { ok: false, error: humanDbError(updateError, "Their contact details couldn't be saved.") };
+    }
   } else {
     const full_name = input.person.full_name.trim();
     const student_id = input.person.student_id.trim();
@@ -114,7 +119,9 @@ export async function openStay(input: OpenStayInput): Promise<OpenStayResult> {
       .select("id, full_name")
       .eq("student_id", student_id)
       .maybeSingle();
-    if (lookupError) return { ok: false, error: lookupError.message };
+    if (lookupError) {
+      return { ok: false, error: humanDbError(lookupError, "The student-ID check failed. Try again.") };
+    }
     if (existing) {
       return {
         ok: false,
@@ -135,7 +142,7 @@ export async function openStay(input: OpenStayInput): Promise<OpenStayResult> {
         ok: false,
         error: error.code === "23505"
           ? `${student_id} was just added by someone else. Search for them and open a stay instead.`
-          : error.message,
+          : humanDbError(error, "The student record couldn't be created."),
       };
     }
     personId = created.id;
@@ -151,7 +158,9 @@ export async function openStay(input: OpenStayInput): Promise<OpenStayResult> {
     .select("id, term, occupancy_status")
     .eq("person_id", personId)
     .eq("is_archived", false);
-  if (staysError) return { ok: false, error: staysError.message };
+  if (staysError) {
+    return { ok: false, error: humanDbError(staysError, "Their existing stays couldn't be checked.") };
+  }
 
   const live = (stays ?? []).find((s) => s.occupancy_status !== "checked_out");
   if (live) {
@@ -176,7 +185,7 @@ export async function openStay(input: OpenStayInput): Promise<OpenStayResult> {
       ok: false,
       error: occError.message.includes("occupancies_one_active_per_person")
         ? `${personName} already has an active stay. Check them out or archive it before opening a new one.`
-        : occError.message,
+        : humanDbError(occError, "The new stay couldn't be opened."),
     };
   }
 
@@ -196,7 +205,7 @@ export async function openStay(input: OpenStayInput): Promise<OpenStayResult> {
       revalidateRoster();
       return {
         ok: false,
-        error: `The new stay was created, but ${personName}'s previous stay could not be archived: ${archiveError.message}. Archive it from the Residents list.`,
+        error: `The new stay was created, but ${personName}'s previous stay could not be archived. Archive it from the Residents list.`,
       };
     }
     archived = archivedRows?.length ?? 0;
@@ -231,7 +240,9 @@ export async function updateResident(
       emergency_contact: row.emergency_contact,
     })
     .eq("id", personId);
-  if (personError) return { ok: false, error: personError.message };
+  if (personError) {
+    return { ok: false, error: humanDbError(personError, "Their details couldn't be saved.") };
+  }
 
   // A room change recorded here is a correction, not a move: mid-term moves go
   // through reassign_room so they land in room_change_events.
@@ -239,7 +250,9 @@ export async function updateResident(
     .from("occupancies")
     .update({ room_id: row.room_id })
     .eq("id", occupancyId);
-  if (occError) return { ok: false, error: occError.message };
+  if (occError) {
+    return { ok: false, error: humanDbError(occError, "The room change couldn't be saved.") };
+  }
 
   revalidateRoster();
   revalidatePath(`/residents/${occupancyId}`);
@@ -250,14 +263,40 @@ export async function updateResident(
  * Delete the STAY, not the person: their other occupancies and the history
  * attached to them survive. Prefer archiving — deletion cascades this stay's
  * events, so it's for roster mistakes only.
+ *
+ * Four tables reference an occupancy. Three of them — presence_events,
+ * occupancy_events and room_change_events — cascade, because they only mean
+ * anything as part of the stay they belong to. `inspections` deliberately
+ * does NOT: a signed inspection is the document a damage dispute is settled
+ * from, and it must outlive a careless click on this screen.
+ *
+ * So the dependent check happens HERE, before the delete, rather than being
+ * left to the foreign key. The FK still stands as the real guarantee; this
+ * just means the RD reads a sentence about archiving instead of a constraint
+ * name. The UI blocks the button too, but a stale page could still get here.
  */
 export async function deleteOccupancy(occupancyId: string): Promise<ActionResult> {
   const supabase = await createClient();
+
+  const { count, error: countError } = await supabase
+    .from("inspections")
+    .select("id", { count: "exact", head: true })
+    .eq("occupancy_id", occupancyId);
+  if (countError) {
+    return { ok: false, error: humanDbError(countError) };
+  }
+  if ((count ?? 0) > 0) {
+    return {
+      ok: false,
+      error: `This stay has ${count} inspection ${count === 1 ? "record" : "records"}. Archive it instead — deleting would destroy the signed record a damage dispute rests on.`,
+    };
+  }
+
   const { error } = await supabase
     .from("occupancies")
     .delete()
     .eq("id", occupancyId);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: humanDbError(error) };
   revalidateRoster();
   return { ok: true };
 }
@@ -281,7 +320,7 @@ export async function setOccupancyArchived(
       ok: false,
       error: error.message.includes("occupancies_one_active_per_person")
         ? "That person already has another active stay — archive or check out that one first."
-        : error.message,
+        : humanDbError(error, "That stay couldn't be updated."),
     };
   }
   revalidateRoster();
@@ -301,7 +340,9 @@ export async function setCurrentTerm(term: string): Promise<ActionResult> {
     .from("app_settings")
     .update({ current_term: trimmed })
     .eq("id", true);
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    return { ok: false, error: humanDbError(error, "The term couldn't be saved.") };
+  }
   revalidateRoster();
   revalidatePath("/hallways", "layout");
   return { ok: true };
