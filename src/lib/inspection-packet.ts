@@ -14,7 +14,7 @@ import type {
   PdfPhoto,
   PdfSignature,
 } from "@/lib/inspection-pdf";
-import { byRoomNumber } from "@/lib/packet-format";
+import { checkedInInRoomOrder } from "@/lib/packet-format";
 
 /*
  * Turning stored records into printable ones.
@@ -101,19 +101,33 @@ export async function toPdfData(
 
 export type HallwayCheckins = {
   hallwayName: string;
-  /** Ordered by room number; every one has a complete, signed move-in. */
+  /** Ordered by room number. One per stay that is `checked_in` right now and
+      has a complete, signed move-in. */
   inspectionIds: string[];
 };
 
 /**
  * Which move-in records belong in a hallway's packet.
  *
- * A resident is included when BOTH are true: their stay has moved past
- * `expected` (so the check-in was actually finalised) and their move-in
- * inspection is fully signed. The two go together by design —
- * record_occupancy refuses a check-in without a signed move-in — so a
- * mismatch means legacy data, and legacy data is skipped rather than
- * printed half-formed.
+ * The packet answers "who is living here right now", so a stay qualifies
+ * only while its status is `checked_in` at the moment of generation.
+ * `expected` never arrived; `checked_out` has left, whether at the end of
+ * term or by moving to another building, and printing their move-in record
+ * alongside the current residents misrepresents who the hallway holds.
+ *
+ * `current_residents` supplies the other two halves of "right now" — it is
+ * already scoped to the current term and to stays that are not archived — so
+ * status is the only filter this has to apply itself.
+ *
+ * That also settles the awkward case by itself: someone who checked out of
+ * one room and into another in this same hallway has two non-archived stays
+ * this term (the partial unique index allows it, since only one of them is
+ * active), and exactly one of them is `checked_in`. They appear once, under
+ * the room they actually live in.
+ *
+ * A `checked_in` stay whose move-in inspection is somehow unsigned is
+ * skipped rather than printed half-formed — record_occupancy makes that
+ * impossible going forward, so it would only ever be legacy data.
  */
 export async function collectHallwayCheckins(
   supabase: SupabaseClient,
@@ -137,14 +151,7 @@ export async function collectHallwayCheckins(
       }[]
     >();
 
-  // Occupancy ids of everyone whose check-in is done, kept in room order.
-  const checkedIn = (rooms ?? [])
-    .flatMap((room) =>
-      room.current_residents
-        .filter((r) => r.occupancy_status !== "expected")
-        .map((r) => ({ room: room.room_number, occupancyId: r.id })),
-    )
-    .sort((a, b) => byRoomNumber(a.room, b.room));
+  const checkedIn = checkedInInRoomOrder(rooms ?? []);
 
   if (checkedIn.length === 0) {
     return { hallwayName: hallway.name, inspectionIds: [] };
