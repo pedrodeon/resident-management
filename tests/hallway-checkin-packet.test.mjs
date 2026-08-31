@@ -16,12 +16,17 @@ import {
   renderInspectionPacket,
   renderInspectionPdf,
 } from "../src/lib/inspection-pdf.ts";
-import { byRoomNumber, slugify } from "../src/lib/packet-format.ts";
+import {
+  byRoomNumber,
+  checkedInInRoomOrder,
+  slugify,
+} from "../src/lib/packet-format.ts";
 import {
   adminClient,
   staffClient,
   assertSeededDevDatabase,
   hallwayByName,
+  occupancyByStudentId,
   RA_EMAIL,
 } from "./helpers.mjs";
 
@@ -223,6 +228,59 @@ describe("many records in one document", () => {
   });
 });
 
+describe("who belongs in a packet", () => {
+  // The packet describes who is living in the hallway now, so the rule is
+  // `checked_in` and nothing else. These run on plain rows: no database, and
+  // no undeletable probe stays left behind in a fixture project.
+  const room = (room_number, ...residents) => ({ room_number, current_residents: residents });
+  const stay = (id, occupancy_status) => ({ id, occupancy_status });
+
+  test("a resident who checked in then checked out is excluded", () => {
+    const found = checkedInInRoomOrder([room("101", stay("gone", "checked_out"))]);
+    assert.deepEqual(found, []);
+  });
+
+  test("a resident who is expected but never arrived is excluded", () => {
+    const found = checkedInInRoomOrder([room("101", stay("waiting", "expected"))]);
+    assert.deepEqual(found, []);
+  });
+
+  test("a resident checked in right now is included", () => {
+    const found = checkedInInRoomOrder([room("101", stay("here", "checked_in"))]);
+    assert.deepEqual(found, [{ room: "101", occupancyId: "here" }]);
+  });
+
+  test("a mixed hallway yields exactly its checked-in stays, in room order", () => {
+    const found = checkedInInRoomOrder([
+      room("205", stay("b", "checked_in"), stay("x", "expected")),
+      room("101", stay("a", "checked_in"), stay("y", "checked_out")),
+      room("312", stay("z", "checked_out")),
+    ]);
+    assert.deepEqual(found, [
+      { room: "101", occupancyId: "a" },
+      { room: "205", occupancyId: "b" },
+    ]);
+  });
+
+  test("someone who moved rooms within the hallway appears once, in the room they are in now", () => {
+    // Two stays for the SAME person this term: the old room they checked out
+    // of, and the new one they are checked into. Both are current-term and
+    // unarchived, which the partial unique index permits because only one is
+    // active — so the status filter is what has to separate them.
+    const found = checkedInInRoomOrder([
+      room("101", stay("their-old-stay", "checked_out")),
+      room("108", stay("their-new-stay", "checked_in")),
+    ]);
+    assert.equal(found.length, 1, "the resident appears more than once");
+    assert.deepEqual(found, [{ room: "108", occupancyId: "their-new-stay" }]);
+  });
+
+  test("an empty hallway yields nothing", () => {
+    assert.deepEqual(checkedInInRoomOrder([]), []);
+    assert.deepEqual(checkedInInRoomOrder([room("101")]), []);
+  });
+});
+
 describe("room ordering and filenames", () => {
   test("rooms sort as numbers, not as text", () => {
     const rooms = ["312", "9", "101", "205"];
@@ -267,30 +325,82 @@ describe("against a live database", () => {
     );
   });
 
-  test("only residents past `expected` are included", async () => {
+  test("only residents checked in RIGHT NOW are included", async () => {
     const { data: rooms } = await admin
       .from("rooms")
       .select("room_number, current_residents ( id, occupancy_status )")
       .eq("hallway_id", holiday1.id);
 
-    const expectedOnly = rooms
+    const notLivingHere = rooms
       .flatMap((r) => r.current_residents)
-      .filter((r) => r.occupancy_status === "expected")
+      .filter((r) => r.occupancy_status !== "checked_in")
       .map((r) => r.id);
 
     const { data: theirInspections } = await admin
       .from("inspections")
       .select("id")
       .eq("type", "move_in")
-      .in("occupancy_id", expectedOnly.length > 0 ? expectedOnly : [holiday1.id]);
+      .in("occupancy_id", notLivingHere.length > 0 ? notLivingHere : [holiday1.id]);
 
     const found = await collect(ra, holiday1.id);
     for (const inspection of theirInspections ?? []) {
       assert.equal(
         found.inspectionIds.includes(inspection.id),
         false,
-        "a resident who has not checked in was included",
+        "a stay that is not checked in was included",
       );
+    }
+  });
+
+  test("the packet holds one record per checked-in stay, no more", async () => {
+    const { data: rooms } = await admin
+      .from("rooms")
+      .select("current_residents ( id, occupancy_status )")
+      .eq("hallway_id", holiday1.id);
+    const checkedIn = rooms
+      .flatMap((r) => r.current_residents)
+      .filter((r) => r.occupancy_status === "checked_in");
+
+    const found = await collect(ra, holiday1.id);
+    assert.equal(
+      found.inspectionIds.length,
+      checkedIn.length,
+      "the packet does not match the hallway's checked-in count",
+    );
+  });
+
+  test("checking a resident out drops them from the packet", async () => {
+    const stay = await occupancyByStudentId("S1000101");
+    const before = await collect(ra, holiday1.id);
+    const { data: theirs } = await admin
+      .from("inspections")
+      .select("id")
+      .eq("type", "move_in")
+      .eq("occupancy_id", stay.id)
+      .maybeSingle();
+    assert.ok(theirs, "the fixture stay has no move-in record to track");
+    assert.ok(
+      before.inspectionIds.includes(theirs.id),
+      "the resident was not in the packet to begin with",
+    );
+
+    await admin
+      .from("occupancies")
+      .update({ occupancy_status: "checked_out" })
+      .eq("id", stay.id);
+    try {
+      const after = await collect(ra, holiday1.id);
+      assert.equal(
+        after.inspectionIds.includes(theirs.id),
+        false,
+        "a checked-out resident stayed in the packet",
+      );
+      assert.equal(after.inspectionIds.length, before.inspectionIds.length - 1);
+    } finally {
+      await admin
+        .from("occupancies")
+        .update({ occupancy_status: "checked_in" })
+        .eq("id", stay.id);
     }
   });
 
