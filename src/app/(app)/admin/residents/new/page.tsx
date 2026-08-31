@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getStaffContext } from "@/lib/auth";
 import { OpenStayFlow, type PersonOption, type RoomChoice } from "@/components/admin/open-stay-flow";
 import { getCurrentTerm } from "@/lib/current-term";
 import type { OccupancyStatus } from "@/lib/types";
@@ -36,6 +38,11 @@ type RoomRow = {
 };
 
 export default async function NewStayPage() {
+  // Same reason as /admin/residents: the layout's refusal does not stop this
+  // page running, and its props carry every person's name and student ID.
+  const staff = await getStaffContext();
+  if (!staff || staff.role !== "rd") redirect("/");
+
   const supabase = await createClient();
   const [{ data: people }, { data: rooms }, term] = await Promise.all([
     supabase

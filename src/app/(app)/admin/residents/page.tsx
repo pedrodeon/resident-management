@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getStaffContext } from "@/lib/auth";
 import {
   ResidentsManager,
   type AdminOccupancy,
@@ -27,6 +29,8 @@ type OccupancyRow = {
     emergency_contact: string | null;
   } | null;
   rooms: { room_number: string; hallways: { name: string } | null } | null;
+  /** PostgREST aggregate: how many inspections hang off this stay. */
+  inspections: { count: number }[];
 };
 
 type RoomRow = {
@@ -36,6 +40,14 @@ type RoomRow = {
 };
 
 export default async function AdminResidentsPage() {
+  // The admin layout hides this area from RAs, but a layout that renders a
+  // refusal does not stop this page from running: its props — every
+  // resident's name, student ID, phone and emergency contact — are still
+  // serialised into the payload an RA receives. Gate the page itself, the
+  // same way /admin/reports and /admin/submissions do.
+  const staff = await getStaffContext();
+  if (!staff || staff.role !== "rd") redirect("/");
+
   const supabase = await createClient();
   const [{ data: occupancies }, { data: rooms }, term] = await Promise.all([
     supabase
@@ -43,7 +55,8 @@ export default async function AdminResidentsPage() {
       .select(
         `id, term, occupancy_status, is_archived, room_id,
          people ( id, full_name, student_id, phone, emergency_contact ),
-         rooms ( room_number, hallways ( name ) )`,
+         rooms ( room_number, hallways ( name ) ),
+         inspections ( count )`,
       )
       .order("term", { ascending: false })
       .overrideTypes<OccupancyRow[]>(),
@@ -73,6 +86,10 @@ export default async function AdminResidentsPage() {
       term: o.term,
       occupancy_status: o.occupancy_status,
       is_archived: o.is_archived,
+      // Inspections are the one dependent that blocks deletion — they are
+      // deliberately NOT cascaded, so the list needs to know before it offers
+      // a Delete button that the database would refuse.
+      inspection_count: o.inspections?.[0]?.count ?? 0,
       room_label: `${o.rooms?.hallways?.name ?? "?"} · Room ${o.rooms?.room_number ?? "?"}`,
     }))
     .sort(

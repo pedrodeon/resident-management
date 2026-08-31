@@ -299,7 +299,9 @@ export default async function ResidentPage({
           (both signature halves, or the move-out waiver) exports as the PDF
           liability document; the API route re-checks the same gate. */}
       {inspectionRecords.length > 0 && (
-        <div className="mt-8">
+        // The anchor Admin -> Residents links to when it explains why a stay
+        // with inspections can't be deleted.
+        <div className="mt-8 scroll-mt-4" id="inspections">
           <SectionLabel>Inspections</SectionLabel>
           <Card as="ul" variant="list" className="mt-2">
             {inspectionRecords.map((rec) => (
